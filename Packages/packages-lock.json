@@ -239,8 +239,8 @@
         "com.unity.ai.navigation": "1.1.5"
       }
     },
-    "com.rehub.rehubui": {
-      "version": "file:com.rehub.rehubui",
+    "com.rehub.rehubsystem": {
+      "version": "file:com.rehub.rehubsystem",
       "depth": 0,
       "source": "embedded",
       "dependencies": {}
