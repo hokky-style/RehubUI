@@ -617,8 +617,16 @@ namespace RehubSystem.Editor
                 {
                     EditorGUILayout.PropertyField(verifiedUsersUrl, new GUIContent(EditorI18n.GetTranslation("verifiedUsersUrl")));
                     EditorGUILayout.HelpBox(EditorI18n.GetTranslation("verifiedUsersUrlDescription"), MessageType.Info);
-                    _uiManagerSerializedObject.ApplyModifiedProperties();
                 }
+
+                var versionListingUrl = _uiManagerSerializedObject.FindProperty("_versionListingUrl");
+                if (versionListingUrl != null)
+                {
+                    EditorGUILayout.PropertyField(versionListingUrl, new GUIContent(EditorI18n.GetTranslation("runtimeVersionListingUrl")));
+                    EditorGUILayout.HelpBox(EditorI18n.GetTranslation("runtimeVersionListingUrlDescription"), MessageType.Info);
+                }
+
+                _uiManagerSerializedObject.ApplyModifiedProperties();
             }
 
             UIStyles.TitleBox(EditorI18n.GetTranslation("otherSettings"));

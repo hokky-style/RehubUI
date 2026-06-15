@@ -3,6 +3,7 @@ using System;
 using UdonSharp;
 using UnityEngine;
 using UnityEngine.UI;
+using VRC.SDK3.Data;
 using VRC.SDK3.StringLoading;
 using VRC.SDKBase;
 using VRC.Udon.Common.Interfaces;
@@ -37,9 +38,12 @@ namespace RehubSystem
         [SerializeField] private GameObject _modalWindowTemplate;
         [SerializeField] private Transform _modalWindowContainer;
         [SerializeField] private VRCUrl _verifiedUsersUrl = new VRCUrl("");
+        [SerializeField] private VRCUrl _versionListingUrl = new VRCUrl("");
+        [SerializeField] private string _currentSystemVersion = "1.0.0";
 
         private const int DockSlotCount = 5;
         private const int PinnedNavigationButtonCount = DockSlotCount - 2;
+        private const string PackageName = "com.rehub.rehubsystem";
         private const string HomeNavigationButtonName = "__home";
         private const string SystemSettingsModuleId = "SystemSettingsModule";
         private const string InstanceOwnerStatusName = "InstanceOwner";
@@ -61,6 +65,9 @@ namespace RehubSystem
         private string _verifiedUsersRawList = "";
         private bool _verifiedUsersLoaded = false;
         private bool _localPlayerVerified = false;
+        private bool _versionListingLoaded = false;
+        private bool _versionUpdateAvailable = false;
+        private string _latestSystemVersion = "";
         private bool _worldLicensed = false;
 
         private bool _titleTemplateASide = false;
@@ -93,6 +100,9 @@ namespace RehubSystem
 
         public ThemeManager ThemeManager => _themeManager;
         public bool LocalPlayerVerified => _localPlayerVerified;
+        public bool VersionListingLoaded => _versionListingLoaded;
+        public bool VersionUpdateAvailable => _versionUpdateAvailable;
+        public string LatestSystemVersion => _latestSystemVersion;
         public bool WorldLicensed => _worldLicensed;
 
         private void Start()
@@ -199,6 +209,7 @@ namespace RehubSystem
             _i18nManager.ApplyI18n();
             InitializeHeaderStatusIndicators();
             RequestVerifiedUsers();
+            RequestVersionListing();
             UpdateHeaderStatusIndicators();
 
             if (_defaultOpenModule != null)
@@ -236,7 +247,12 @@ namespace RehubSystem
 
         public bool IsWorldLicensed()
         {
-            return _worldLicensed;
+            return _versionListingLoaded;
+        }
+
+        public bool HasVersionUpdate()
+        {
+            return _versionUpdateAvailable;
         }
 
         public void RefreshHeaderStatusIndicators()
@@ -263,25 +279,63 @@ namespace RehubSystem
             VRCStringDownloader.LoadUrl(_verifiedUsersUrl, (IUdonEventReceiver)this);
         }
 
+        public void RequestVersionListing()
+        {
+            if (string.IsNullOrEmpty(_versionListingUrl.Get()))
+            {
+                _versionListingLoaded = false;
+                _versionUpdateAvailable = false;
+                _latestSystemVersion = "";
+                _worldLicensed = false;
+                UpdateHeaderStatusIndicators();
+                return;
+            }
+
+            VRCStringDownloader.LoadUrl(_versionListingUrl, (IUdonEventReceiver)this);
+        }
+
         public override void OnStringLoadSuccess(IVRCStringDownload result)
         {
-            if (result.Url != _verifiedUsersUrl) return;
+            if (result.Url == _verifiedUsersUrl)
+            {
+                _verifiedUsersRawList = result.Result;
+                _verifiedUsersLoaded = true;
+                RefreshHeaderStatusIndicators();
+                Debug.Log($"[UIManager] Verified users list loaded. Local player verified: {_localPlayerVerified}");
+                return;
+            }
 
-            _verifiedUsersRawList = result.Result;
-            _verifiedUsersLoaded = true;
-            RefreshHeaderStatusIndicators();
-            Debug.Log($"[UIManager] Verified users list loaded. Local player verified: {_localPlayerVerified}");
+            if (result.Url == _versionListingUrl)
+            {
+                _versionListingLoaded = TryReadLatestSystemVersion(result.Result, out _latestSystemVersion);
+                _versionUpdateAvailable = _versionListingLoaded && CompareVersions(_latestSystemVersion, _currentSystemVersion) > 0;
+                _worldLicensed = _versionListingLoaded;
+                UpdateHeaderStatusIndicators();
+                Debug.Log($"[UIManager] Version listing loaded. Current: {_currentSystemVersion}, latest: {_latestSystemVersion}, update available: {_versionUpdateAvailable}");
+            }
         }
 
         public override void OnStringLoadError(IVRCStringDownload result)
         {
-            if (result.Url != _verifiedUsersUrl) return;
+            if (result.Url == _verifiedUsersUrl)
+            {
+                Debug.LogWarning($"[UIManager] Failed to load verified users list: {result.ErrorCode} - {result.Error}");
+                _verifiedUsersRawList = "";
+                _verifiedUsersLoaded = false;
+                _localPlayerVerified = false;
+                UpdateHeaderStatusIndicators();
+                return;
+            }
 
-            Debug.LogWarning($"[UIManager] Failed to load verified users list: {result.ErrorCode} - {result.Error}");
-            _verifiedUsersRawList = "";
-            _verifiedUsersLoaded = false;
-            _localPlayerVerified = false;
-            UpdateHeaderStatusIndicators();
+            if (result.Url == _versionListingUrl)
+            {
+                Debug.LogWarning($"[UIManager] Failed to load version listing: {result.ErrorCode} - {result.Error}");
+                _versionListingLoaded = false;
+                _versionUpdateAvailable = false;
+                _latestSystemVersion = "";
+                _worldLicensed = false;
+                UpdateHeaderStatusIndicators();
+            }
         }
 
         public void UseModule(ModuleMetadata module)
@@ -543,7 +597,8 @@ namespace RehubSystem
             var verifiedPalette = _verifiedUsersLoaded && _localPlayerVerified ? ColorPalette.Success : ColorPalette.Error;
             SetHeaderStatus(_verifiedUserStatus, _verifiedUserStatusTheme, verifiedPalette);
 
-            SetHeaderStatus(_worldLicensedStatus, _worldLicensedStatusTheme, _worldLicensed ? ColorPalette.Success : ColorPalette.Error);
+            var versionPalette = !_versionListingLoaded ? ColorPalette.Error : (_versionUpdateAvailable ? ColorPalette.Warning : ColorPalette.Success);
+            SetHeaderStatus(_worldLicensedStatus, _worldLicensedStatusTheme, versionPalette);
         }
 
         private void SetHeaderStatus(GameObject statusObject, ApplyTheme theme, ColorPalette palette)
@@ -566,6 +621,81 @@ namespace RehubSystem
             var source = NormalizeRemoteList(_verifiedUsersRawList);
             var target = NormalizeRemoteList(playerName).Trim();
             return source.Contains($"\n{target}\n");
+        }
+
+        private bool TryReadLatestSystemVersion(string json, out string latestVersion)
+        {
+            latestVersion = "";
+
+            if (!VRCJson.TryDeserializeFromJson(json, out var listing) || listing.TokenType != TokenType.DataDictionary)
+            {
+                Debug.LogWarning("[UIManager] Failed to parse version listing JSON.");
+                return false;
+            }
+
+            var root = listing.DataDictionary;
+            if (root.TryGetValue(PackageName, TokenType.String, out var directPackageVersion))
+            {
+                latestVersion = directPackageVersion.String;
+                return !string.IsNullOrEmpty(latestVersion);
+            }
+
+            if (root.TryGetValue(PackageName, TokenType.DataDictionary, out var packageListing))
+            {
+                var packageData = packageListing.DataDictionary;
+                if (packageData.TryGetValue("system", TokenType.String, out var packageSystemVersion))
+                {
+                    latestVersion = packageSystemVersion.String;
+                    return !string.IsNullOrEmpty(latestVersion);
+                }
+            }
+
+            if (root.TryGetValue("system", TokenType.String, out var systemVersion))
+            {
+                latestVersion = systemVersion.String;
+                return !string.IsNullOrEmpty(latestVersion);
+            }
+
+            if (root.TryGetValue("version", TokenType.String, out var version))
+            {
+                latestVersion = version.String;
+                return !string.IsNullOrEmpty(latestVersion);
+            }
+
+            Debug.LogWarning("[UIManager] Version listing does not contain a system version.");
+            return false;
+        }
+
+        private int CompareVersions(string left, string right)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                var leftPart = GetVersionPart(left, i);
+                var rightPart = GetVersionPart(right, i);
+
+                if (leftPart > rightPart) return 1;
+                if (leftPart < rightPart) return -1;
+            }
+
+            return 0;
+        }
+
+        private int GetVersionPart(string version, int index)
+        {
+            if (string.IsNullOrEmpty(version)) return 0;
+
+            var cleanVersion = version.Trim();
+            var preReleaseIndex = cleanVersion.IndexOf("-");
+            if (preReleaseIndex >= 0)
+            {
+                cleanVersion = cleanVersion.Substring(0, preReleaseIndex);
+            }
+
+            var parts = cleanVersion.Split('.');
+            if (index >= parts.Length) return 0;
+
+            int value;
+            return int.TryParse(parts[index], out value) ? value : 0;
         }
 
         private string NormalizeRemoteList(string value)

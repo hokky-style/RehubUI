@@ -24162,6 +24162,8 @@ MonoBehaviour:
   _modalWindowTemplate: {fileID: 2615650201296009014}
   _modalWindowContainer: {fileID: 7723739782374867028}
   _verifiedUsersUrl: 
+  _versionListingUrl: 
+  _currentSystemVersion: 1.0.0
 --- !u!114 &5168782100122049823
 MonoBehaviour:
   m_ObjectHideFlags: 0

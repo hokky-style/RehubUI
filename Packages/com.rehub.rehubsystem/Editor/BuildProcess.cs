@@ -1,3 +1,4 @@
+using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
@@ -17,6 +18,18 @@ namespace RehubSystem.Editor
             if (versionInfoModule != null)
             {
                 versionInfoModule.SetProgramVariable("version", version);
+            }
+
+            var uiManager = Object.FindObjectOfType<UIManager>();
+            if (uiManager != null)
+            {
+                var serializedUiManager = new SerializedObject(uiManager);
+                var currentSystemVersion = serializedUiManager.FindProperty("_currentSystemVersion");
+                if (currentSystemVersion != null)
+                {
+                    currentSystemVersion.stringValue = version;
+                    serializedUiManager.ApplyModifiedPropertiesWithoutUndo();
+                }
             }
         }
     }

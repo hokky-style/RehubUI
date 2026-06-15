@@ -1,0 +1,15 @@
+{
+  "com.rehub.rehubsystem": {
+    "system": "1.0.0",
+    "modules": {
+      "ModuleListModule": "1.0.0",
+      "WorldChangelogModule": "1.0.0",
+      "FreeTextModule": "1.0.0",
+      "UIElementsTestModule": "1.0.0",
+      "VideoPlayerModule": "1.0.0",
+      "SystemSettingsModule": "1.0.0",
+      "VersionInfoModule": "1.0.0",
+      "CloudSyncModule": "1.0.0"
+    }
+  }
+}
