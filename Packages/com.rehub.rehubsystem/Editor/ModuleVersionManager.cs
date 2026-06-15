@@ -9,8 +9,8 @@ namespace RehubSystem.Editor
 {
     public static class ModuleVersionManager
     {
-        private const string _defaultListingUrl = "";
-        private const string _listingUrlPrefsKey = "RehubUI_ModuleVersionListingUrl";
+        public const string ListingUrl = "https://raw.githubusercontent.com/hokky-style/RehubUI/main/version-listing.example.json";
+        public const string ReleasesUrl = "https://github.com/hokky-style/RehubUI/releases";
         private static readonly Dictionary<string, Version> _latestVersions = new Dictionary<string, Version>();
         private static readonly Dictionary<string, Version> _currentVersions = new Dictionary<string, Version>();
         private static readonly List<string> _updateAvailableModules = new List<string>();
@@ -22,12 +22,6 @@ namespace RehubSystem.Editor
         public static List<string> UpdateAvailableModules => _updateAvailableModules;
         public static bool AvailableUpdate => _updateAvailableModules.Count > 0;
         public static bool AvailableModules => _currentVersions.Count > 0;
-        public static string ListingUrl
-        {
-            get => EditorPrefs.GetString(_listingUrlPrefsKey, _defaultListingUrl);
-            set => EditorPrefs.SetString(_listingUrlPrefsKey, value ?? string.Empty);
-        }
-
         static ModuleVersionManager()
         {
             CheckLatestVersions();

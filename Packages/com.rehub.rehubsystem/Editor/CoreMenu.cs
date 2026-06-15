@@ -560,14 +560,7 @@ namespace RehubSystem.Editor
 #pragma warning restore CS0162
 
             EditorGUILayout.Space();
-            using (var x = new EditorGUI.ChangeCheckScope())
-            {
-                var listingUrl = EditorGUILayout.TextField(EditorI18n.GetTranslation("versionListingUrl"), ModuleVersionManager.ListingUrl);
-                if (x.changed)
-                {
-                    ModuleVersionManager.ListingUrl = listingUrl;
-                }
-            }
+            EditorGUILayout.LabelField(EditorI18n.GetTranslation("versionListingSource"), ModuleVersionManager.ListingUrl);
 
             if (GUILayout.Button(EditorI18n.GetTranslation("checkForUpdates")))
             {
@@ -601,7 +594,7 @@ namespace RehubSystem.Editor
                 {
                     if (GUILayout.Button(EditorI18n.GetTranslation("downloadLatestVersion"), GUILayout.Height(32)))
                     {
-                        Debug.Log("RehubUI module downloads are not configured yet.");
+                        Application.OpenURL(ModuleVersionManager.ReleasesUrl);
                     }
                 }
             }
@@ -617,13 +610,6 @@ namespace RehubSystem.Editor
                 {
                     EditorGUILayout.PropertyField(verifiedUsersUrl, new GUIContent(EditorI18n.GetTranslation("verifiedUsersUrl")));
                     EditorGUILayout.HelpBox(EditorI18n.GetTranslation("verifiedUsersUrlDescription"), MessageType.Info);
-                }
-
-                var versionListingUrl = _uiManagerSerializedObject.FindProperty("_versionListingUrl");
-                if (versionListingUrl != null)
-                {
-                    EditorGUILayout.PropertyField(versionListingUrl, new GUIContent(EditorI18n.GetTranslation("runtimeVersionListingUrl")));
-                    EditorGUILayout.HelpBox(EditorI18n.GetTranslation("runtimeVersionListingUrlDescription"), MessageType.Info);
                 }
 
                 _uiManagerSerializedObject.ApplyModifiedProperties();

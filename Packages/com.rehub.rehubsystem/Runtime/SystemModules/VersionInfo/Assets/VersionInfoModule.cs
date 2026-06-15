@@ -12,13 +12,81 @@ namespace RehubSystem
     {
         public string version = "0.0.0";
         [SerializeField] private Text _versionText;
+        [SerializeField] private Text _statusText;
+        [SerializeField] private UIManager _uiManager;
 
         private void Start()
         {
+            if (_uiManager == null)
+            {
+                _uiManager = GetComponentInParent<UIManager>();
+            }
+
+            if (_statusText == null)
+            {
+                _statusText = FindStatusText();
+            }
+
+            RefreshVersionStatus();
+        }
+
+        public void RefreshVersionStatus()
+        {
+            if (_uiManager == null)
+            {
+                _uiManager = GetComponentInParent<UIManager>();
+            }
+
+            if (_statusText == null)
+            {
+                _statusText = FindStatusText();
+            }
+
             if (_versionText != null)
             {
                 _versionText.text = $"Version {version}";
             }
+
+            if (_statusText == null) return;
+
+            if (_uiManager == null)
+            {
+                _statusText.text = "Version status unavailable";
+                return;
+            }
+
+            if (!_uiManager.VersionListingLoaded)
+            {
+                _statusText.text = "Unable to check for updates";
+                return;
+            }
+
+            if (_uiManager.VersionUpdateAvailable)
+            {
+                _statusText.text = $"New version available: {_uiManager.LatestSystemVersion}";
+                return;
+            }
+
+            _statusText.text = "You are using the latest version";
+        }
+
+        private Text FindStatusText()
+        {
+            var texts = GetComponentsInChildren<Text>(true);
+            for (int i = 0; i < texts.Length; i++)
+            {
+                if (texts[i] != null && texts[i] != _versionText)
+                {
+                    return texts[i];
+                }
+            }
+
+            return null;
+        }
+
+        public void OnModuleCalled()
+        {
+            RefreshVersionStatus();
         }
     }
 
@@ -27,7 +95,7 @@ namespace RehubSystem
     public class VersionInfoModuleInspector : ModuleInspector
     {
         protected override string I18nUUID => "4808d31699fba654f86b406d56d0e5c7";
-        protected override string[] ObjectProperties => new string[] { "version", "_versionText" };
+        protected override string[] ObjectProperties => new string[] { "version", "_versionText", "_statusText", "_uiManager" };
 
         protected override void DrawModuleInspector()
         {

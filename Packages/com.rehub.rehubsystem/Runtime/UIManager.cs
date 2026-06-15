@@ -38,12 +38,13 @@ namespace RehubSystem
         [SerializeField] private GameObject _modalWindowTemplate;
         [SerializeField] private Transform _modalWindowContainer;
         [SerializeField] private VRCUrl _verifiedUsersUrl = new VRCUrl("");
-        [SerializeField] private VRCUrl _versionListingUrl = new VRCUrl("");
+        [SerializeField, HideInInspector] private VRCUrl _versionListingUrl = new VRCUrl(VersionListingUrl);
         [SerializeField] private string _currentSystemVersion = "1.0.0";
 
         private const int DockSlotCount = 5;
         private const int PinnedNavigationButtonCount = DockSlotCount - 2;
         private const string PackageName = "com.rehub.rehubsystem";
+        private const string VersionListingUrl = "https://raw.githubusercontent.com/hokky-style/RehubUI/main/version-listing.example.json";
         private const string HomeNavigationButtonName = "__home";
         private const string SystemSettingsModuleId = "SystemSettingsModule";
         private const string InstanceOwnerStatusName = "InstanceOwner";
@@ -283,6 +284,7 @@ namespace RehubSystem
         {
             if (string.IsNullOrEmpty(_versionListingUrl.Get()))
             {
+                Debug.LogWarning("[UIManager] Version listing URL is empty.");
                 _versionListingLoaded = false;
                 _versionUpdateAvailable = false;
                 _latestSystemVersion = "";
@@ -296,7 +298,7 @@ namespace RehubSystem
 
         public override void OnStringLoadSuccess(IVRCStringDownload result)
         {
-            if (result.Url == _verifiedUsersUrl)
+            if (IsSameUrl(result.Url, _verifiedUsersUrl))
             {
                 _verifiedUsersRawList = result.Result;
                 _verifiedUsersLoaded = true;
@@ -305,7 +307,7 @@ namespace RehubSystem
                 return;
             }
 
-            if (result.Url == _versionListingUrl)
+            if (IsSameUrl(result.Url, _versionListingUrl) || IsUrlString(result.Url, VersionListingUrl))
             {
                 _versionListingLoaded = TryReadLatestSystemVersion(result.Result, out _latestSystemVersion);
                 _versionUpdateAvailable = _versionListingLoaded && CompareVersions(_latestSystemVersion, _currentSystemVersion) > 0;
@@ -317,7 +319,7 @@ namespace RehubSystem
 
         public override void OnStringLoadError(IVRCStringDownload result)
         {
-            if (result.Url == _verifiedUsersUrl)
+            if (IsSameUrl(result.Url, _verifiedUsersUrl))
             {
                 Debug.LogWarning($"[UIManager] Failed to load verified users list: {result.ErrorCode} - {result.Error}");
                 _verifiedUsersRawList = "";
@@ -327,7 +329,7 @@ namespace RehubSystem
                 return;
             }
 
-            if (result.Url == _versionListingUrl)
+            if (IsSameUrl(result.Url, _versionListingUrl) || IsUrlString(result.Url, VersionListingUrl))
             {
                 Debug.LogWarning($"[UIManager] Failed to load version listing: {result.ErrorCode} - {result.Error}");
                 _versionListingLoaded = false;
@@ -336,6 +338,18 @@ namespace RehubSystem
                 _worldLicensed = false;
                 UpdateHeaderStatusIndicators();
             }
+        }
+
+        private bool IsSameUrl(VRCUrl left, VRCUrl right)
+        {
+            if (left == null || right == null) return false;
+            return left.Get() == right.Get();
+        }
+
+        private bool IsUrlString(VRCUrl url, string value)
+        {
+            if (url == null || string.IsNullOrEmpty(value)) return false;
+            return url.Get() == value;
         }
 
         public void UseModule(ModuleMetadata module)
@@ -554,7 +568,12 @@ namespace RehubSystem
 
             _instanceOwnerStatusTheme = FindStatusTheme(_instanceOwnerStatus);
             _verifiedUserStatusTheme = FindStatusTheme(_verifiedUserStatus);
-            _worldLicensedStatusTheme = FindStatusTheme(_worldLicensedStatus);
+            _worldLicensedStatusTheme = null;
+
+            if (_worldLicensedStatus != null)
+            {
+                _worldLicensedStatus.SetActive(false);
+            }
         }
 
         private GameObject FindChildGameObject(Transform root, string childName)
@@ -596,9 +615,6 @@ namespace RehubSystem
 
             var verifiedPalette = _verifiedUsersLoaded && _localPlayerVerified ? ColorPalette.Success : ColorPalette.Error;
             SetHeaderStatus(_verifiedUserStatus, _verifiedUserStatusTheme, verifiedPalette);
-
-            var versionPalette = !_versionListingLoaded ? ColorPalette.Error : (_versionUpdateAvailable ? ColorPalette.Warning : ColorPalette.Success);
-            SetHeaderStatus(_worldLicensedStatus, _worldLicensedStatusTheme, versionPalette);
         }
 
         private void SetHeaderStatus(GameObject statusObject, ApplyTheme theme, ColorPalette palette)
