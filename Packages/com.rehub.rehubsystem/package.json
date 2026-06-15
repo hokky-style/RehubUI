@@ -1,0 +1,16 @@
+{
+  "name": "com.rehub.rehubsystem",
+  "displayName": "RehubUI",
+  "version": "1.0.0",
+  "description": "RehubUI Core",
+  "unity": "2022.3",
+  "gitDependencies": {},
+  "vpmDependencies": {
+    "com.vrchat.worlds": ">=3.7.4"
+  },
+  "author": {
+    "name": "RehubUI"
+  },
+  "legacyFolders": {},
+  "legacyFiles": {}
+}

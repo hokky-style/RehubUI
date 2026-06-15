@@ -1,0 +1,12 @@
+﻿{
+    "en":  {
+               "$title":  "Free Text Module",
+               "description":  "You can change the name displayed in the menu by changing the \"Module Name\" of the ModuleMetadata component.\nThis module can be placed multiple times.",
+               "text":  "Text"
+           },
+    "uk":  {
+               "$title":  "Модуль вільного тексту",
+               "description":  "Назву, яка відображається в меню, можна змінити через поле \"Назва модуля\" в компоненті ModuleMetadata.\nЦей модуль можна розміщувати кілька разів.",
+               "text":  "Текст"
+           }
+}

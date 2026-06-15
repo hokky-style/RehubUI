@@ -1,0 +1,40 @@
+﻿{
+    "en":  {
+               "returnToHome":  "Return to Home",
+               "homeWelcomeText":  "Welcome back, {0}",
+               "home":  "Home",
+               "tutorialTextInVRStick":  "You can use the Quick Menu by inputting the stick of the {0} controller upwards",
+               "tutorialTextInVRTrigger":  "You can use the Quick Menu by quickly pressing the trigger of the {0} controller twice",
+               "tutorialTextInVRTriggerCombo":  "You can use the Quick Menu by pressing the trigger of the {1} controller while quickly pressing the trigger of the {0} controller twice",
+               "right":  "right",
+               "left":  "left",
+               "tutorialTextInDesktopTab":  "You can use the Quick Menu by pressing the Tab key",
+               "tutorialTextInDesktopShiftTab":  "You can use the Quick Menu by pressing the Tab key while pressing the Shift key",
+               "tutorialTextInMobile":  "You can use the Quick Menu by tapping the menu button at the top left of the screen",
+               "unavailableMessage":  "Currently unavailable as it is being used elsewhere",
+               "forceReset":  "Force Reset",
+               "noPermission":  "No Permission",
+               "notAllowedToUseThisModuleBecauseYouAreNotTheInstanceOwner":  "You are not allowed to use this module because you are not the instance owner",
+               "notAllowedToUseThisModuleBecauseYouAreNotInTheAllowedUsers":  "You are not allowed to use this module because you do not have permission\n(Only users permitted by the world creator can use it)",
+               "close":  "Close"
+           },
+    "uk":  {
+               "returnToHome":  "Повернутися додому",
+               "homeWelcomeText":  "З поверненням, {0}",
+               "home":  "Домівка",
+               "tutorialTextInVRStick":  "Швидке меню можна відкрити рухом стіка контролера {0} вгору",
+               "tutorialTextInVRTrigger":  "Швидке меню можна відкрити швидким подвійним натисканням тригера контролера {0}",
+               "tutorialTextInVRTriggerCombo":  "Швидке меню можна відкрити натисканням тригера контролера {1} під час швидкого подвійного натискання тригера контролера {0}",
+               "right":  "права",
+               "left":  "ліва",
+               "tutorialTextInDesktopTab":  "Швидке меню можна відкрити клавішею Tab",
+               "tutorialTextInDesktopShiftTab":  "Швидке меню можна відкрити клавішею Tab із затиснутим Shift",
+               "tutorialTextInMobile":  "Швидке меню можна відкрити кнопкою меню у верхньому лівому куті екрана",
+               "unavailableMessage":  "Наразі недоступно, бо використовується в іншому місці",
+               "forceReset":  "Примусове скидання",
+               "noPermission":  "Немає дозволу",
+               "notAllowedToUseThisModuleBecauseYouAreNotTheInstanceOwner":  "Ви не можете використовувати цей модуль, бо не є власником інстансу",
+               "notAllowedToUseThisModuleBecauseYouAreNotInTheAllowedUsers":  "Ви не можете використовувати цей модуль, бо не маєте дозволу\n(Доступ мають лише користувачі, дозволені автором світу)",
+               "close":  "Закрити"
+           }
+}

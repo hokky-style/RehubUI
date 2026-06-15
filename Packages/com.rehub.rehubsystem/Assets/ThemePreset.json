@@ -1,0 +1,37 @@
+[{
+    "name": "Rehub Dark",
+    "color": {
+        "accent": "#75A7FF",
+        "bg": "#171926",
+        "surface": "#2B2E43",
+        "text": "#E6E9F8",
+        "success": "#76D89A",
+        "warning": "#F4B76E",
+        "error": "#EF6F8B",
+        "info": "#5EC9E6"
+    }
+}, {
+    "name": "Rehub Light",
+    "color": {
+        "accent": "#2F6FFF",
+        "bg": "#F5F7FC",
+        "surface": "#E3E8F3",
+        "text": "#23283A",
+        "success": "#2E9F5B",
+        "warning": "#B87717",
+        "error": "#C43F58",
+        "info": "#188FB5"
+    }
+}, {
+    "name": "Rehub Ocean",
+    "color": {
+        "accent": "#20D3B8",
+        "bg": "#102026",
+        "surface": "#1E3B44",
+        "text": "#E1FAF7",
+        "success": "#70E0A0",
+        "warning": "#FFD166",
+        "error": "#FF6B7A",
+        "info": "#56CCF2"
+    }
+}]
