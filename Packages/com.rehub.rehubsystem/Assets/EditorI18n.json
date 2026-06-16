@@ -107,14 +107,15 @@
                "useModuleNameAsDisplayName":  "Use Module Name as Display Name [?]",
                "useModuleNameAsDisplayNameDescription":  "Changes the module name displayed in the menu to the entered module name. Enabling this option disables localization for the module name.",
                "instanceOwnerOnly":  "Make it usable only by instance owner",
+               "instanceMasterOnly":  "Make it usable only by instance master",
                "allowedUsersOnly":  "Make it usable only by allowed users",
-               "instanceOwnerAndAllowedUsersInfo":  "If both \"Instance Owner Only\" and \"Allowed Users Only\" are enabled, it will be usable by either the instance owner or the allowed users. (Treated as OR)",
+               "instanceOwnerAndAllowedUsersInfo":  "If multiple permission restrictions are enabled, the module can be used by any matching user. (Treated as OR)",
                "allowUsingUsers":  "Usernames of users allowed to use",
                "moduleCommonSettings":  "Module Common Settings",
                "enableDevMode":  "Enable Developer Mode",
                "setupSuccessfully":  "Set up successfully",
                "setupIssuesFound":  "Issues found. Enable developer mode to see more details.",
-               "modulePermissionsEnabled":  "Restrictions on users who can use it are enabled (\"Instance Owner Only\" or \"Allowed Users Only\")"
+               "modulePermissionsEnabled":  "Restrictions on users who can use it are enabled (owner, master, or allowed users)"
            },
     "uk":  {
                "moduleName":  "Назва модуля",
@@ -224,13 +225,14 @@
                "useModuleNameAsDisplayName":  "Використовувати назву модуля як відображувану [?]",
                "useModuleNameAsDisplayNameDescription":  "Змінює назву модуля в меню на введену вручну. Якщо увімкнено, локалізація назви модуля вимикається.",
                "instanceOwnerOnly":  "Доступно лише власнику інстансу",
+               "instanceMasterOnly":  "Доступно лише майстру інстансу",
                "allowedUsersOnly":  "Доступно лише дозволеним користувачам",
-               "instanceOwnerAndAllowedUsersInfo":  "Якщо увімкнено обидва обмеження, модуль буде доступний власнику інстансу або дозволеним користувачам.",
+               "instanceOwnerAndAllowedUsersInfo":  "Якщо увімкнено кілька обмежень, модуль буде доступний будь-якому користувачу, який відповідає хоча б одному з них.",
                "allowUsingUsers":  "Імена користувачів із доступом",
                "moduleCommonSettings":  "Загальні налаштування модуля",
                "enableDevMode":  "Увімкнути режим розробника",
                "setupSuccessfully":  "Налаштування успішне",
                "setupIssuesFound":  "Знайдено проблеми. Увімкніть режим розробника, щоб побачити деталі.",
-               "modulePermissionsEnabled":  "Увімкнено обмеження доступу користувачів (\"Лише власник інстансу\" або \"Лише дозволені користувачі\")"
+               "modulePermissionsEnabled":  "Увімкнено обмеження доступу користувачів (власник, майстер або дозволені користувачі)"
            }
 }

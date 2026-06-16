@@ -4170,6 +4170,11 @@ MonoBehaviour:
   _lastSaveTime: {fileID: 2009066415553094166}
   _saveUrlCopyField: {fileID: 8769912362373061543}
   _saveUrlPasteField: {fileID: 6780925272907717738}
+  _uiManager: {fileID: 0}
+  _syncStatusText: {fileID: 0}
+  _masterStatusText: {fileID: 0}
+  _ownerStatusText: {fileID: 0}
+  _verifiedStatusText: {fileID: 0}
 --- !u!114 &1600827723982232585
 MonoBehaviour:
   m_ObjectHideFlags: 0

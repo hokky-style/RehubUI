@@ -16,6 +16,7 @@
                "noPermission":  "No Permission",
                "notAllowedToUseThisModuleBecauseYouAreNotTheInstanceOwner":  "You are not allowed to use this module because you are not the instance owner",
                "notAllowedToUseThisModuleBecauseYouAreNotInTheAllowedUsers":  "You are not allowed to use this module because you do not have permission\n(Only users permitted by the world creator can use it)",
+               "notAllowedToUseThisModuleBecauseYouDoNotMatchPermissions":  "You are not allowed to use this module because you do not match its permission requirements",
                "close":  "Close"
            },
     "uk":  {
@@ -35,6 +36,7 @@
                "noPermission":  "Немає дозволу",
                "notAllowedToUseThisModuleBecauseYouAreNotTheInstanceOwner":  "Ви не можете використовувати цей модуль, бо не є власником інстансу",
                "notAllowedToUseThisModuleBecauseYouAreNotInTheAllowedUsers":  "Ви не можете використовувати цей модуль, бо не маєте дозволу\n(Доступ мають лише користувачі, дозволені автором світу)",
+               "notAllowedToUseThisModuleBecauseYouDoNotMatchPermissions":  "Ви не можете використовувати цей модуль, бо не відповідаєте його вимогам доступу",
                "close":  "Закрити"
            }
 }

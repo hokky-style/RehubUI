@@ -17,56 +17,91 @@ namespace RehubSystem
         [SerializeField] private ApplyTimeI18n _lastSaveTime;
         [SerializeField] private InputField _saveUrlCopyField;
         [SerializeField] private VRCUrlInputField _saveUrlPasteField;
+        [SerializeField] private UIManager _uiManager;
+        [SerializeField] private Text _syncStatusText;
+        [SerializeField] private Text _masterStatusText;
+        [SerializeField] private Text _ownerStatusText;
+        [SerializeField] private Text _verifiedStatusText;
         private VRCUrl _emptyUrl = new VRCUrl("");
 
         private void Start()
         {
-            if (_cloudSyncManager == null || _saveStatusAnimator == null || _lastSaveTime == null || _saveUrlCopyField == null || _saveUrlPasteField == null)
+            if (_uiManager == null)
             {
-                Debug.LogError("CloudSyncModule: Missing required components.");
-                return;
+                _uiManager = GetComponentInParent<UIManager>();
             }
 
-            _saveStatusAnimator.keepAnimatorStateOnDisable = true;
+            if (_saveStatusAnimator != null)
+            {
+                _saveStatusAnimator.keepAnimatorStateOnDisable = true;
+            }
+
+            ResolveStatusTexts();
+            DisableLegacyControls();
+            RefreshStatus();
         }
 
         public void RefreshStatus()
         {
-            Debug.Log("CloudSyncModule: Refreshing status with state " + _cloudSyncManager.LastState);
-            switch (_cloudSyncManager.LastState)
-            {
-                case "unknown":
-                    _saveStatusAnimator.SetTrigger("loading");
-                    break;
-                case "success":
-                    if (_cloudSyncManager.LastSaveTime == DateTimeOffset.MinValue)
-                    {
-                        _saveStatusAnimator.SetTrigger("notfound");
-                    }
-                    else
-                    {
-                        _lastSaveTime.time = _cloudSyncManager.LastSaveTime.ToLocalTime();
-                        _lastSaveTime.Apply();
-                        _saveStatusAnimator.SetBool("fromPersistence", _cloudSyncManager.UsingPersistenceData);
-                        _saveStatusAnimator.SetTrigger("success");
-                    }
-                    break;
-                case "error":
-                    _saveStatusAnimator.SetTrigger("error");
-                    break;
-            }
+            var hasSynced = _cloudSyncManager != null && _cloudSyncManager.LastState == "success" && _cloudSyncManager.LastSaveTime != DateTimeOffset.MinValue;
+            SetStatusText(_syncStatusText, "Synchronization", hasSynced);
+            SetStatusText(_masterStatusText, "Instance master", Networking.LocalPlayer != null && Networking.LocalPlayer.isMaster);
+            SetStatusText(_ownerStatusText, "Instance owner", Networking.LocalPlayer != null && Networking.LocalPlayer.isInstanceOwner);
+            SetStatusText(_verifiedStatusText, "Verified user", _uiManager != null && _uiManager.LocalPlayerVerified);
         }
 
         public void OnModuleCalled()
         {
-            _saveUrlCopyField.text = _cloudSyncManager.GetSaveUrl();
+            if (_cloudSyncManager != null && _saveUrlCopyField != null)
+            {
+                _saveUrlCopyField.text = _cloudSyncManager.GetSaveUrl();
+            }
+
             RefreshStatus();
         }
 
         public void OnSaveRequested()
         {
+            if (_cloudSyncManager == null || _saveUrlPasteField == null) return;
+
             _cloudSyncManager.RequestSave(_saveUrlPasteField.GetUrl());
             _saveUrlPasteField.SetUrl(_emptyUrl);
+        }
+
+        private void ResolveStatusTexts()
+        {
+            if (_syncStatusText == null) _syncStatusText = FindTextByObjectName("SyncStatus");
+            if (_masterStatusText == null) _masterStatusText = FindTextByObjectName("MasterStatus");
+            if (_ownerStatusText == null) _ownerStatusText = FindTextByObjectName("OwnerStatus");
+            if (_verifiedStatusText == null) _verifiedStatusText = FindTextByObjectName("VerifiedStatus");
+        }
+
+        private Text FindTextByObjectName(string objectName)
+        {
+            var texts = GetComponentsInChildren<Text>(true);
+            for (int i = 0; i < texts.Length; i++)
+            {
+                if (texts[i] != null && texts[i].gameObject.name == objectName)
+                {
+                    return texts[i];
+                }
+            }
+
+            return null;
+        }
+
+        private void SetStatusText(Text target, string label, bool enabled)
+        {
+            if (target == null) return;
+            target.text = $"{label}: {(enabled ? "Yes" : "No")}";
+        }
+
+        private void DisableLegacyControls()
+        {
+            if (_saveUrlCopyField != null) _saveUrlCopyField.gameObject.SetActive(false);
+            if (_saveUrlPasteField != null) _saveUrlPasteField.gameObject.SetActive(false);
+            if (_lastSaveTime != null) _lastSaveTime.gameObject.SetActive(false);
+            if (_saveStatusAnimator != null) _saveStatusAnimator.gameObject.SetActive(false);
         }
     }
 
@@ -75,7 +110,7 @@ namespace RehubSystem
     public class CloudSyncModuleInspector : ModuleInspector
     {
         protected override string I18nUUID => "924493d0692e091469e86bb170d34d8e";
-        protected override string[] ObjectProperties => new string[] { "_cloudSyncManager", "_saveStatusAnimator", "_lastSaveTime", "_saveUrlCopyField", "_saveUrlPasteField" };
+        protected override string[] ObjectProperties => new string[] { "_cloudSyncManager", "_saveStatusAnimator", "_lastSaveTime", "_saveUrlCopyField", "_saveUrlPasteField", "_uiManager", "_syncStatusText", "_masterStatusText", "_ownerStatusText", "_verifiedStatusText" };
 
         protected override void DrawModuleInspector()
         {

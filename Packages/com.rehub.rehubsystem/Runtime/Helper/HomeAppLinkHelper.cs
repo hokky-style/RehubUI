@@ -15,6 +15,7 @@ namespace RehubSystem
         public ApplyI18n titleI18n;
         public ModuleExecutor moduleExecutor;
         public GameObject permissionIconOwner;
+        public GameObject permissionIconMaster;
         public GameObject permissionIconAllowedUser;
     }
 }

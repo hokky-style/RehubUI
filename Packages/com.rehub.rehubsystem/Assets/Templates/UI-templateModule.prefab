@@ -2310,6 +2310,7 @@ MonoBehaviour:
   content: {fileID: 444681179946712228}
   activateOnStart: 0
   instanceOwnerOnly: 0
+  instanceMasterOnly: 0
   allowedUsersOnly: 0
   allowedUsers: []
   i18nManager: {fileID: 0}

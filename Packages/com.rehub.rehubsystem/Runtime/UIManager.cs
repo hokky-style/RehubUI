@@ -35,8 +35,10 @@ namespace RehubSystem
         [SerializeField] private GameObject _navigationButtonTemplate;
         [SerializeField] private Transform _navigationButtonContainer;
         [SerializeField] private Sprite _homeNavigationIcon;
+        [SerializeField] private Sprite _masterPermissionIcon;
         [SerializeField] private GameObject _modalWindowTemplate;
         [SerializeField] private Transform _modalWindowContainer;
+        [SerializeField] private CloudSyncManager _cloudSyncManager;
         [SerializeField] private VRCUrl _verifiedUsersUrl = new VRCUrl("");
         [SerializeField, HideInInspector] private VRCUrl _versionListingUrl = new VRCUrl(VersionListingUrl);
         [SerializeField] private string _currentSystemVersion = "1.0.0";
@@ -135,10 +137,22 @@ namespace RehubSystem
                     linkObject.SetActive(true);
 
                     var link = linkObject.GetComponent<HomeAppLinkHelper>();
-                    link.icon.sprite = module.moduleIcon;
+                    if (link == null)
+                    {
+                        Debug.LogWarning("HomeAppLinkHelper is missing on link template.");
+                        continue;
+                    }
 
-                    link.moduleExecutor.manager = this;
-                    link.moduleExecutor.module = module;
+                    if (link.icon != null)
+                    {
+                        link.icon.sprite = module.moduleIcon;
+                    }
+
+                    if (link.moduleExecutor != null)
+                    {
+                        link.moduleExecutor.manager = this;
+                        link.moduleExecutor.module = module;
+                    }
 
                     var isSystemSettingsModule = IsSystemSettingsModule(module);
                     var pinnedNavigationButton = isSystemSettingsModule || pinnedNavigationButtons < PinnedNavigationButtonCount;
@@ -152,40 +166,37 @@ namespace RehubSystem
                         pinnedNavigationButtons++;
                     }
 
-                    if (!module.forceUseModuleName && module.i18nManager != null)
-                    {
-                        if (!module.i18nManager.Initialized) module.i18nManager.BuildLocalization();
-                        if (module.i18nManager.HasLocalization)
-                        {
-                            link.titleI18n.manager = module.i18nManager;
-                            navigationButton.transform.Find("Title").GetComponent<ApplyI18n>().manager = module.i18nManager;
-                        }
-                        else
-                        {
-                            link.title.text = module.moduleName;
-                            navigationButton.transform.Find("Title").GetComponent<Text>().text = module.moduleName;
-                        }
-                    }
-                    else
-                    {
-                        link.title.text = module.moduleName;
-                        navigationButton.transform.Find("Title").GetComponent<Text>().text = module.moduleName;
-                    }
+                    ApplyModuleNavigationTitle(link, navigationButton, module);
 
                     if (module.instanceOwnerOnly)
                     {
-                        link.permissionIconOwner.SetActive(true);
+                        SetPermissionIconActive(link.permissionIconOwner);
+                    }
+
+                    if (module.instanceMasterOnly)
+                    {
+                        var masterIcon = link.permissionIconMaster != null ? link.permissionIconMaster : link.permissionIconAllowedUser;
+                        ApplyPermissionIconSprite(masterIcon, _masterPermissionIcon);
+                        SetPermissionIconActive(masterIcon);
                     }
 
                     if (module.allowedUsersOnly)
                     {
-                        link.permissionIconAllowedUser.SetActive(true);
+                        SetPermissionIconActive(link.permissionIconAllowedUser);
                     }
                 }
 
-                module.content.name = module.Uuid;
-                module.content.transform.SetParent(_moduleContentContainer, false);
-                module.content.SetActive(false);
+                if (module.content != null)
+                {
+                    module.content.name = module.Uuid;
+                    module.content.transform.SetParent(_moduleContentContainer, false);
+                    module.content.SetActive(false);
+                }
+                else
+                {
+                    Debug.LogWarning($"Module content is missing: {module.moduleName}");
+                }
+
                 module.Activate();
 
                 var moduleI18n = module.GetComponent<I18nManager>();
@@ -209,6 +220,7 @@ namespace RehubSystem
             _themeManager.ApplyTheme();
             _i18nManager.ApplyI18n();
             InitializeHeaderStatusIndicators();
+            InitializeCloudSyncManager();
             RequestVerifiedUsers();
             RequestVersionListing();
             UpdateHeaderStatusIndicators();
@@ -233,6 +245,72 @@ namespace RehubSystem
                 }
 
                 _homeWelcomeText.text = text;
+            }
+        }
+
+        private void SetPermissionIconActive(GameObject permissionIcon)
+        {
+            if (permissionIcon != null)
+            {
+                permissionIcon.SetActive(true);
+            }
+        }
+
+        private void ApplyPermissionIconSprite(GameObject permissionIcon, Sprite sprite)
+        {
+            if (permissionIcon == null || sprite == null) return;
+
+            var image = permissionIcon.GetComponent<Image>();
+            if (image != null)
+            {
+                image.sprite = sprite;
+            }
+        }
+
+        private void ApplyModuleNavigationTitle(HomeAppLinkHelper link, GameObject navigationButton, ModuleMetadata module)
+        {
+            var moduleTitle = module.moduleName;
+            var hasModuleLocalization = !module.forceUseModuleName && module.i18nManager != null;
+            if (hasModuleLocalization)
+            {
+                if (!module.i18nManager.Initialized)
+                {
+                    module.i18nManager.BuildLocalization();
+                }
+
+                if (module.i18nManager.HasLocalization)
+                {
+                    var localizedTitle = module.i18nManager.GetTranslation("$moduleName", _i18nManager.CurrentLanguage);
+                    if (!string.IsNullOrEmpty(localizedTitle))
+                    {
+                        moduleTitle = localizedTitle;
+                    }
+                }
+            }
+
+            if (link.title != null)
+            {
+                link.title.text = moduleTitle;
+            }
+
+            if (link.titleI18n != null && hasModuleLocalization && module.i18nManager.HasLocalization)
+            {
+                link.titleI18n.manager = module.i18nManager;
+            }
+
+            var navigationTitle = navigationButton != null ? navigationButton.transform.Find("Title") : null;
+            if (navigationTitle == null) return;
+
+            var navigationTitleText = navigationTitle.GetComponent<Text>();
+            if (navigationTitleText != null)
+            {
+                navigationTitleText.text = moduleTitle;
+            }
+
+            var navigationTitleI18n = navigationTitle.GetComponent<ApplyI18n>();
+            if (navigationTitleI18n != null && hasModuleLocalization && module.i18nManager.HasLocalization)
+            {
+                navigationTitleI18n.manager = module.i18nManager;
             }
         }
 
@@ -359,43 +437,19 @@ namespace RehubSystem
 #region Permission check
             var localPlayerName = Networking.LocalPlayer != null ? Networking.LocalPlayer.displayName : "";
             var isInstanceOwner = Networking.LocalPlayer != null && Networking.LocalPlayer.isInstanceOwner;
+            var isInstanceMaster = Networking.LocalPlayer != null && Networking.LocalPlayer.isMaster;
             var isAllowedUser = IsLocalAllowedUser(module.allowedUsers, localPlayerName) || IsPlayerVerified(localPlayerName);
-            if (module.instanceOwnerOnly && module.allowedUsersOnly)
+            var hasPermissionRestrictions = module.instanceOwnerOnly || module.instanceMasterOnly || module.allowedUsersOnly;
+            var canUseRestrictedModule = (module.instanceOwnerOnly && isInstanceOwner) || (module.instanceMasterOnly && isInstanceMaster) || (module.allowedUsersOnly && isAllowedUser);
+            if (hasPermissionRestrictions && !canUseRestrictedModule)
             {
-                if (!isInstanceOwner && !isAllowedUser)
-                {
-                    ShowModalWindow(
-                        _i18nManager.GetTranslation("noPermission"),
-                        _i18nManager.GetTranslation("notAllowedToUseThisModuleBecauseYouAreNotTheInstanceOwner"),
-                        _i18nManager.GetTranslation("close")
-                    );
-                    Debug.LogWarning("This module is only usable by the instance owner or allowed users.");
-                    return;
-                }
-            }
-            else
-            {
-                if (module.instanceOwnerOnly && !isInstanceOwner)
-                {
-                    ShowModalWindow(
-                        _i18nManager.GetTranslation("noPermission"),
-                        _i18nManager.GetTranslation("notAllowedToUseThisModuleBecauseYouAreNotTheInstanceOwner"),
-                        _i18nManager.GetTranslation("close")
-                    );
-                    Debug.LogWarning("This module is only usable by the instance owner.");
-                    return;
-                }
-
-                if (module.allowedUsersOnly && !isAllowedUser)
-                {
-                    ShowModalWindow(
-                        _i18nManager.GetTranslation("noPermission"),
-                        _i18nManager.GetTranslation("notAllowedToUseThisModuleBecauseYouAreNotInTheAllowedUsers"),
-                        _i18nManager.GetTranslation("close")
-                    );
-                    Debug.LogWarning("You are not in the allowed users for this module.");
-                    return;
-                }
+                ShowModalWindow(
+                    _i18nManager.GetTranslation("noPermission"),
+                    _i18nManager.GetTranslation("notAllowedToUseThisModuleBecauseYouDoNotMatchPermissions"),
+                    _i18nManager.GetTranslation("close")
+                );
+                Debug.LogWarning("You do not match the permission requirements for this module.");
+                return;
             }
 #endregion
 
@@ -568,11 +622,17 @@ namespace RehubSystem
 
             _instanceOwnerStatusTheme = FindStatusTheme(_instanceOwnerStatus);
             _verifiedUserStatusTheme = FindStatusTheme(_verifiedUserStatus);
-            _worldLicensedStatusTheme = null;
+            _worldLicensedStatusTheme = FindStatusTheme(_worldLicensedStatus);
+        }
 
-            if (_worldLicensedStatus != null)
+        private void InitializeCloudSyncManager()
+        {
+            if (_cloudSyncManager != null) return;
+
+            var cloudSyncObject = FindChildGameObject(transform, "CloudSyncManager");
+            if (cloudSyncObject != null)
             {
-                _worldLicensedStatus.SetActive(false);
+                _cloudSyncManager = cloudSyncObject.GetComponent<CloudSyncManager>();
             }
         }
 
@@ -615,6 +675,9 @@ namespace RehubSystem
 
             var verifiedPalette = _verifiedUsersLoaded && _localPlayerVerified ? ColorPalette.Success : ColorPalette.Error;
             SetHeaderStatus(_verifiedUserStatus, _verifiedUserStatusTheme, verifiedPalette);
+
+            var isInstanceMaster = Networking.LocalPlayer != null && Networking.LocalPlayer.isMaster;
+            SetHeaderStatus(_worldLicensedStatus, _worldLicensedStatusTheme, isInstanceMaster ? ColorPalette.Success : ColorPalette.Error);
         }
 
         private void SetHeaderStatus(GameObject statusObject, ApplyTheme theme, ColorPalette palette)
@@ -895,11 +958,30 @@ namespace RehubSystem
 
         public void OpenCloudSyncModule()
         {
-            var module = _moduleManager.GetModule("CloudSyncModule");
-            if (module != null)
-            {
-                UseModule(module);
-            }
+            ShowStatusModal();
+        }
+
+        public void ShowStatusModal()
+        {
+            InitializeCloudSyncManager();
+
+            var synchronized = _cloudSyncManager != null && _cloudSyncManager.LastState == "success" && _cloudSyncManager.LastSaveTime != DateTimeOffset.MinValue;
+            var isInstanceMaster = Networking.LocalPlayer != null && Networking.LocalPlayer.isMaster;
+            var isInstanceOwner = Networking.LocalPlayer != null && Networking.LocalPlayer.isInstanceOwner;
+            var verifiedStatus = _verifiedUsersLoaded && _localPlayerVerified;
+
+            var content =
+                $"Synchronization: {FormatStatusValue(synchronized)}\n" +
+                $"Instance master: {FormatStatusValue(isInstanceMaster)}\n" +
+                $"Instance owner: {FormatStatusValue(isInstanceOwner)}\n" +
+                $"Verified user: {FormatStatusValue(verifiedStatus)}";
+
+            ShowModalWindow("RehubUI Status", content, "Close");
+        }
+
+        private string FormatStatusValue(bool value)
+        {
+            return value ? "Yes" : "No";
         }
 
         public void ShowModalWindow(string title, string content, string closeButtonText)

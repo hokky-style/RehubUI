@@ -25,6 +25,7 @@ namespace RehubSystem
         public GameObject content;
         public bool activateOnStart = false;
         public bool instanceOwnerOnly = false;
+        public bool instanceMasterOnly = false;
         public bool allowedUsersOnly = false;
         public string[] allowedUsers = new string[0];
 
@@ -178,6 +179,7 @@ namespace RehubSystem
             var label = new GUIContent(EditorI18n.GetTranslation("useModuleNameAsDisplayName"), EditorI18n.GetTranslation("useModuleNameAsDisplayNameDescription"));
             _moduleMetadata.forceUseModuleName = EditorGUILayout.ToggleLeft(label, _moduleMetadata.forceUseModuleName);
             _moduleMetadata.instanceOwnerOnly = EditorGUILayout.ToggleLeft(EditorI18n.GetTranslation("instanceOwnerOnly"), _moduleMetadata.instanceOwnerOnly);
+            _moduleMetadata.instanceMasterOnly = EditorGUILayout.ToggleLeft(EditorI18n.GetTranslation("instanceMasterOnly"), _moduleMetadata.instanceMasterOnly);
             _moduleMetadata.allowedUsersOnly = EditorGUILayout.ToggleLeft(EditorI18n.GetTranslation("allowedUsersOnly"), _moduleMetadata.allowedUsersOnly);
 
             if (_moduleMetadata.allowedUsersOnly)
@@ -189,7 +191,10 @@ namespace RehubSystem
                 }
             }
 
-            if (_moduleMetadata.instanceOwnerOnly && _moduleMetadata.allowedUsersOnly)
+            var hasMultiplePermissionRestrictions = (_moduleMetadata.instanceOwnerOnly && _moduleMetadata.instanceMasterOnly)
+                || (_moduleMetadata.instanceOwnerOnly && _moduleMetadata.allowedUsersOnly)
+                || (_moduleMetadata.instanceMasterOnly && _moduleMetadata.allowedUsersOnly);
+            if (hasMultiplePermissionRestrictions)
             {
                 EditorGUILayout.Space();
                 EditorGUILayout.HelpBox(EditorI18n.GetTranslation("instanceOwnerAndAllowedUsersInfo"), MessageType.Info);
