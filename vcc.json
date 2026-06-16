@@ -1,7 +1,7 @@
 {
     "name": "Rehub Systems",
     "author": "hokky",
-    "url": "######",
+    "url": "https://raw.githubusercontent.com/hokky-style/RehubUI/refs/heads/main/vcc.json",
     "id": "net.hokky.vpm",
     "packages": {
         "com.rehub.rehubsystem": {
