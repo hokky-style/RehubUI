@@ -9,7 +9,7 @@
                 "1.0.0": {
                     "name": "com.rehub.rehubsystem",
                     "displayName": "Rehub System",
-                    "version": "1.0.0",
+                    "version": "1.0.0-pre1",
                     "unity": "2022.3",
                     "description": "Rehub System + UI menu",
                     "dependencies": { "com.unity.nuget.newtonsoft-json": "3.2.1" },
