@@ -49,7 +49,7 @@ namespace RehubSystem
 
             if (_statusText == null) return;
 
-            _statusText.text = "Rehub Systems";
+            _statusText.text = "Rehub System";
         }
 
         private Text FindStatusText()

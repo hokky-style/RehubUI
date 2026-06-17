@@ -1,41 +1,27 @@
 using System;
-using System.Linq;
+using System.IO;
+using System.Net.Http;
 using UnityEditor;
 using UnityEngine;
-using RehubSystem.EditorShared;
-using System.Threading.Tasks;
-
-#if USE_VPM_RESOLVER
-using VRC.PackageManagement.Core;
-using VRC.PackageManagement.Core.Types;
-using VRC.PackageManagement.Resolver;
-#endif
+using VRC.SDK3.Data;
 
 namespace RehubSystem.Editor
 {
     public static class Updater
     {
-        private static bool _availableUpdate = false;
-
-#if USE_VPM_RESOLVER
-        private static SemanticVersioning.Version _latestVersion;
-        public const bool availableVpmResolver = true;
-#else
-        private static string _latestVersion;
-        public const bool availableVpmResolver = false;
-#endif
+        public const string ListingUrl = "https://raw.githubusercontent.com/hokky-style/RehubUI/refs/heads/main/version-listing.example.json";
 
         private static readonly UnityEditor.PackageManager.PackageInfo _packageInfo;
+        private static Version _latestVersion;
+        private static string _updatePackageUrl = string.Empty;
+        private static bool _checkingForUpdate = false;
+        private static bool _availableUpdate = false;
 
         public static bool AvailableUpdate => _availableUpdate;
+        public static bool CheckingForUpdate => _checkingForUpdate;
         public static string LatestVersion => _latestVersion?.ToString();
-        public static string CurrentVersion => _packageInfo.version;
-
-        public static bool UseUnstableVersion
-        {
-            get => EditorPrefs.GetBool("RehubUI_UseUnstableVersion", false);
-            set => EditorPrefs.SetBool("RehubUI_UseUnstableVersion", value);
-        }
+        public static string CurrentVersion => _packageInfo == null ? "1.0.0" : _packageInfo.version;
+        public static bool CanInstallUpdate => _availableUpdate && !string.IsNullOrEmpty(_updatePackageUrl);
 
         static Updater()
         {
@@ -45,61 +31,108 @@ namespace RehubSystem.Editor
 
         public static async void CheckForUpdate()
         {
-#if USE_VPM_RESOLVER
-            var includeUnstableVersion = UseUnstableVersion;
-            SemanticVersioning.Version latest = null;
-            bool availableUpdate = false;
+            _checkingForUpdate = true;
 
-            await Task.Run(() =>
+            try
             {
-                var availableVersions = Resolver.GetAllVersionsOf(_packageInfo.name)
-                    .Select(x => new SemanticVersioning.Version(x))
-                    .Where(x => x != null && (includeUnstableVersion || !x.IsPreRelease));
-
-                latest = availableVersions.OrderByDescending(x => x).First();
-                if (_latestVersion != null)
+                using (var client = new HttpClient())
                 {
-                    availableUpdate = _latestVersion > new SemanticVersioning.Version(_packageInfo.version);
+                    var result = await client.GetStringAsync(BuildListingRequestUrl());
+                    ReadListing(result);
                 }
-            });
-
-            _latestVersion = latest;
-            _availableUpdate = availableUpdate;
-#endif
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[Rehub System Updater] Failed to check updates: {e.Message}");
+                _latestVersion = null;
+                _updatePackageUrl = string.Empty;
+                _availableUpdate = false;
+            }
+            finally
+            {
+                _checkingForUpdate = false;
+            }
         }
 
-        public static void RunUpdate()
+        public static async void RunUpdate()
         {
-            if (!_availableUpdate || _latestVersion == null || EditorApplication.isPlaying || EditorApplication.isCompiling)
+            if (!CanInstallUpdate || EditorApplication.isPlaying || EditorApplication.isCompiling)
             {
-                Debug.LogError("[RehubUI Updater] Update was not executed. There is no update or it is in Play mode or compiling.");
+                Debug.LogError("[Rehub System Updater] Update was not executed. There is no update package or Unity is busy.");
                 return;
             }
 
-#if USE_VPM_RESOLVER
-            var package = Repos.GetPackageWithVersionMatch(_packageInfo.name, LatestVersion);
-            var affectedPackages = Resolver.GetAffectedPackageList(package);
-
-            if (affectedPackages.Count > 0 && !EditorUtility.DisplayDialog("RehubUI Updater", $"{EditorI18n.GetTranslation("updaterPackageAffectWarn")}\n\n{string.Join("\n", affectedPackages)}", EditorI18n.GetTranslation("yes"), EditorI18n.GetTranslation("no")))
+            try
             {
+                var directory = Path.Combine(Path.GetTempPath(), "RehubSystem");
+                Directory.CreateDirectory(directory);
+
+                var filePath = Path.Combine(directory, "RehubSystem-" + LatestVersion + ".unitypackage");
+                using (var client = new HttpClient())
+                {
+                    var bytes = await client.GetByteArrayAsync(_updatePackageUrl);
+                    File.WriteAllBytes(filePath, bytes);
+                }
+
+                AssetDatabase.ImportPackage(filePath, false);
+                AssetDatabase.Refresh();
+                EditorUtility.DisplayDialog("Rehub System Updater", EditorI18n.GetTranslation("updateSuccessfull"), "OK");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[Rehub System Updater] Failed to install update: {e.Message}");
+                EditorUtility.DisplayDialog("Rehub System Updater", EditorI18n.GetTranslation("updateFailed"), "OK");
+            }
+        }
+
+        private static void ReadListing(string result)
+        {
+            _latestVersion = null;
+            _updatePackageUrl = string.Empty;
+            _availableUpdate = false;
+
+            if (!VRCJson.TryDeserializeFromJson(result, out var listing) || listing.TokenType != TokenType.DataDictionary)
+            {
+                Debug.LogError($"[Rehub System Updater] Failed to parse version listing: {result}");
                 return;
             }
 
-            EditorApplication.delayCall += () => {
-                Resolver.ForceRefresh();
-                try
-                {
-                    new UnityProject(Resolver.ProjectDir).UpdateVPMPackage(package);
-                    EditorUtility.DisplayDialog("RehubUI Updater", EditorI18n.GetTranslation("updateSuccessfull"), "OK");
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"[RehubUI Updater] An error occurred while updating the package: {e.Message}");
-                    EditorUtility.DisplayDialog("RehubUI Updater", EditorI18n.GetTranslation("updateFailed"), "OK");
-                }
-                Resolver.ForceRefresh();
-            };
-#endif
+            var root = listing.DataDictionary;
+            if (!root.TryGetValue("com.rehub.rehubsystem", TokenType.DataDictionary, out var packageListing))
+            {
+                Debug.LogError("[Rehub System Updater] Version listing does not contain com.rehub.rehubsystem.");
+                return;
+            }
+
+            var package = packageListing.DataDictionary;
+            if (!package.TryGetValue("system", TokenType.String, out var systemVersion))
+            {
+                Debug.LogError("[Rehub System Updater] Version listing does not contain system version.");
+                return;
+            }
+
+            if (!Version.TryParse(systemVersion.String, out _latestVersion))
+            {
+                Debug.LogError($"[Rehub System Updater] Invalid system version: {systemVersion.String}");
+                return;
+            }
+
+            if (package.TryGetValue("unityPackageUrl", TokenType.String, out var unityPackageUrl))
+            {
+                _updatePackageUrl = unityPackageUrl.String;
+            }
+
+            if (!Version.TryParse(CurrentVersion, out var currentVersion))
+            {
+                currentVersion = new Version(1, 0, 0);
+            }
+
+            _availableUpdate = _latestVersion > currentVersion;
+        }
+
+        private static string BuildListingRequestUrl()
+        {
+            return ListingUrl + "?rehubCacheBust=" + DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         }
     }
 }

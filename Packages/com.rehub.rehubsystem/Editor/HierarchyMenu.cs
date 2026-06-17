@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
@@ -9,7 +10,8 @@ namespace RehubSystem.Editor
 {
     public static class HierachyMenu
     {
-        private const string _menuParent = "GameObject/RehubUI/";
+        private const string _menuParent = "GameObject/Rehub System/";
+        private const string _menuPrefabGuid = "5d23638bac394824b8788f07f0d91c78";
         private static int _priority = 100;
         private static bool _initialized = false;
 
@@ -36,6 +38,11 @@ namespace RehubSystem.Editor
         private static void GenerateObject(string guid)
         {
             var item = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(guid));
+            GenerateObject(item);
+        }
+
+        private static void GenerateObject(GameObject item)
+        {
             if (item == null) return;
 
             var prefab = PrefabUtility.InstantiatePrefab(item, Selection.activeTransform);
@@ -53,16 +60,39 @@ namespace RehubSystem.Editor
 
         private static void BuildMenu()
         {
-            AddItem(EditorI18n.GetTranslation("menuItemRoot"), "81ab4bc7ffa596e4f90cdaff5ac4cbb0");
+            AddItem(EditorI18n.GetTranslation("menuItemRoot"), _menuPrefabGuid);
             AddSeparator();
 
-            foreach (var module in ModuleRegistry.ModuleList.Values)
+            var installedModulePrefabs = ModuleSceneUtility.GetInstalledModulePrefabs()
+                .Select(prefab => new { Prefab = prefab, Metadata = prefab.GetComponent<ModuleMetadata>() })
+                .Where(item => item.Metadata != null)
+                .OrderBy(item => GetModuleTitle(item.Metadata))
+                .ToList();
+
+            foreach (var module in installedModulePrefabs)
             {
-                AddItem(EditorI18n.GetTranslation("modules") + "/" + module.GetTitle(), module.PrefabGuid);
+                var prefab = module.Prefab;
+                AddItem(EditorI18n.GetTranslation("modules") + "/" + GetModuleTitle(module.Metadata), prefab);
             }
 
             _initialized = true;
             Update();
+        }
+
+        private static void AddItem(string name, GameObject prefab, string shortcut = "", bool isChecked = false, Func<bool> validate = null)
+        {
+            MenuHelper.AddMenuItem(_menuParent + name, shortcut, isChecked, _priority++, () => GenerateObject(prefab), validate);
+        }
+
+        private static string GetModuleTitle(ModuleMetadata metadata)
+        {
+            if (metadata == null) return "Module";
+            if (!metadata.forceUseModuleName && ModuleRegistry.ModuleList.TryGetValue(metadata.ModuleId, out var registryItem))
+            {
+                return registryItem.GetTitle();
+            }
+
+            return string.IsNullOrEmpty(metadata.moduleName) ? metadata.ModuleId : metadata.moduleName;
         }
 
         public static void RebuildMenu()

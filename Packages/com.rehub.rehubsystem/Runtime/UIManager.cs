@@ -971,13 +971,13 @@ namespace RehubSystem
             var verifiedStatus = _verifiedUsersLoaded && _localPlayerVerified;
 
             var content =
-                $"☁ {GetSystemTranslation("statusSynchronization", "Synchronization")}: {FormatStatusValue(synchronized)}\n" +
-                $"● {GetSystemTranslation("statusInstanceMaster", "Instance master")}: {FormatStatusValue(isInstanceMaster)}\n" +
-                $"♛ {GetSystemTranslation("statusInstanceOwner", "Instance owner")}: {FormatStatusValue(isInstanceOwner)}\n" +
-                $"✓ {GetSystemTranslation("statusVerifiedUser", "Verified user")}: {FormatStatusValue(verifiedStatus)}";
+                $"{GetSystemTranslation("statusSynchronization", "Synchronization")}: {FormatStatusValue(synchronized)}\n" +
+                $"{GetSystemTranslation("statusInstanceMaster", "Instance master")}: {FormatStatusValue(isInstanceMaster)}\n" +
+                $"{GetSystemTranslation("statusInstanceOwner", "Instance owner")}: {FormatStatusValue(isInstanceOwner)}\n" +
+                $"{GetSystemTranslation("statusVerifiedUser", "Verified user")}: {FormatStatusValue(verifiedStatus)}";
 
             ShowModalWindow(
-                GetSystemTranslation("statusModalTitle", "RehubUI Status"),
+                GetSystemTranslation("statusModalTitle", "Rehub System Status"),
                 content,
                 GetSystemTranslation("close", "Close"));
         }

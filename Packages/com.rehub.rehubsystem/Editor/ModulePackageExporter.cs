@@ -10,14 +10,14 @@ namespace RehubSystem.Editor
     {
         private const string ModulesRoot = "Packages/com.rehub.rehubsystem/Runtime/Modules";
 
-        [MenuItem("Assets/RehubUI/Export Selected Module UnityPackage", false, 2000)]
+        [MenuItem("Assets/Rehub System/Export Selected Module UnityPackage", false, 2000)]
         public static void ExportSelectedModule()
         {
             var selectedPaths = GetSelectedModulePaths();
             if (selectedPaths.Length == 0)
             {
                 EditorUtility.DisplayDialog(
-                    "RehubUI Module Exporter",
+                    "Rehub System Module Exporter",
                     "Select a module folder and/or prefab inside Packages/com.rehub.rehubsystem/Runtime/Modules first.",
                     "OK");
                 return;
@@ -25,7 +25,7 @@ namespace RehubSystem.Editor
 
             var defaultName = GetDefaultPackageName(selectedPaths);
             var outputPath = EditorUtility.SaveFilePanel(
-                "Export RehubUI module",
+                "Export Rehub System module",
                 "",
                 defaultName,
                 "unitypackage");
@@ -40,7 +40,7 @@ namespace RehubSystem.Editor
             EditorUtility.RevealInFinder(outputPath);
         }
 
-        [MenuItem("Assets/RehubUI/Export Selected Module UnityPackage", true)]
+        [MenuItem("Assets/Rehub System/Export Selected Module UnityPackage", true)]
         public static bool ValidateExportSelectedModule()
         {
             return GetSelectedModulePaths().Length > 0;

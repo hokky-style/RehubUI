@@ -5,7 +5,7 @@
       "id": "com.rehub.module.player",
       "name": "Yama Player",
       "version": "1.0.0",
-      "description": "Video player module for RehubUI.",
+      "description": "Video player module for Rehub System.",
       "author": "hokky",
       "moduleId": "yamaplayer",
       "unityPackageUrl": "https://github.com/hokky-style/RehubUI/raw/refs/heads/main/Packages/com.rehub.modules/YamaPlayer.unitypackage",

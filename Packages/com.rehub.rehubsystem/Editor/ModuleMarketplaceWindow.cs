@@ -20,7 +20,7 @@ namespace RehubSystem.Editor
         private bool _isLoading;
         private string _installingModuleName;
 
-        [MenuItem("Window/RehubUI/Module Marketplace")]
+        [MenuItem("Window/Rehub System/Module Marketplace")]
         public static void OpenWindow()
         {
             var window = GetWindow<ModuleMarketplaceWindow>("Module Marketplace");
@@ -219,7 +219,7 @@ namespace RehubSystem.Editor
 
             try
             {
-                var directory = Path.Combine(Path.GetTempPath(), "RehubUI");
+                var directory = Path.Combine(Path.GetTempPath(), "RehubSystem");
                 Directory.CreateDirectory(directory);
 
                 var fileName = SanitizeFileName(module.ModuleId) + "-" + SanitizeFileName(module.version) + ".unitypackage";
@@ -233,6 +233,7 @@ namespace RehubSystem.Editor
 
                 AssetDatabase.ImportPackage(filePath, false);
                 AssetDatabase.Refresh();
+                HierachyMenu.RebuildMenu();
                 SyncInstalledModuleToOpenRehubSystems();
                 _status = string.Format(EditorI18n.GetTranslation("moduleInstallSuccess"), _installingModuleName);
             }

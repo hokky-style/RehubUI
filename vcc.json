@@ -1,5 +1,5 @@
 {
-    "name": "Rehub Systems",
+    "name": "Rehub System",
     "author": "hokky",
     "url": "https://raw.githubusercontent.com/hokky-style/RehubUI/refs/heads/main/vcc.json",
     "id": "net.hokky.vpm",
@@ -8,12 +8,12 @@
             "versions": {
                 "1.0.0": {
                     "name": "com.rehub.rehubsystem",
-                    "displayName": "Rehub Systems",
+                    "displayName": "Rehub System",
                     "version": "1.0.0",
                     "unity": "2022.3",
                     "description": "World systems + UI menu",
                     "dependencies": { "com.unity.nuget.newtonsoft-json": "3.2.1" },
-                    "vpmDependencies": { "com.vrchat.worlds": ">=3.8.1" }
+                    "vpmDependencies": { "com.vrchat.worlds": ">=3.8.1" },
                     "author": { "name": "hokky", "url": "https://github.com/hokky-style" },
                     "zipSHA256": "b4be4cef249aa0f4c016edf06aa7d518e83f704a5c3ea740e1cb77fc1453ce11",
                     "url": "https://github.com/koorimizuw/YamaPlayer/releases/download/2.0.0-beta.6/net.kwxxw.yama-stream-2.0.0-beta.6.zip",

@@ -1,6 +1,7 @@
 {
   "com.rehub.rehubsystem": {
     "system": "1.0.0",
+    "unityPackageUrl": "https://github.com/hokky-style/RehubUI/raw/refs/heads/main/Packages/com.rehub.modules/RehubSystem.unitypackage",
     "modules": {
       "ModuleListModule": "1.0.0",
       "WorldChangelogModule": "1.0.0",

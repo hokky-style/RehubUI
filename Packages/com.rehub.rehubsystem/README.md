@@ -1,3 +1,3 @@
-# RehubUI
+# Rehub System
 
-Core package for RehubUI.
+Core package for Rehub System.

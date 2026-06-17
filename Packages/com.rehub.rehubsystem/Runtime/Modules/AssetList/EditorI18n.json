@@ -1,14 +1,14 @@
 ﻿{
     "en":  {
                "$title":  "Module List Module",
-               "description":  "Shows installed RehubUI modules and their versions.",
+               "description":  "Shows installed Rehub System modules and their versions.",
                "assetList":  "Module List",
                "name":  "Name",
                "url":  "URL"
            },
     "uk":  {
                "$title":  "Модуль списку модулів",
-               "description":  "Показує встановлені модулі RehubUI та їхні версії.",
+               "description":  "Показує встановлені модулі Rehub System та їхні версії.",
                "assetList":  "Список модулів",
                "name":  "Назва",
                "url":  "URL"

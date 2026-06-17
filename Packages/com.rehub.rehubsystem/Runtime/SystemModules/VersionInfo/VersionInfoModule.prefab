@@ -586,7 +586,7 @@ PrefabInstance:
     - target: {fileID: 4283254737275751206, guid: ab24826dde85ffe458f508ef71dc3072,
         type: 3}
       propertyPath: m_Text
-      value: RehubUI
+      value: Rehub System
       objectReference: {fileID: 0}
     - target: {fileID: 4283254737275751206, guid: ab24826dde85ffe458f508ef71dc3072,
         type: 3}
@@ -1283,7 +1283,7 @@ PrefabInstance:
     - target: {fileID: 4283254737275751206, guid: ab24826dde85ffe458f508ef71dc3072,
         type: 3}
       propertyPath: m_Text
-      value: RehubUI
+      value: Rehub System
       objectReference: {fileID: 0}
     - target: {fileID: 4283254737275751206, guid: ab24826dde85ffe458f508ef71dc3072,
         type: 3}

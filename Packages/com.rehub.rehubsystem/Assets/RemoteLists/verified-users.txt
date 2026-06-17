@@ -1,4 +1,4 @@
-# RehubUI verified users test list
+# Rehub System verified users test list
 # Use one VRChat display name per line.
 makst
 TestUser

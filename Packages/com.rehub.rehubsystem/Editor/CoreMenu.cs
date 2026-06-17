@@ -211,7 +211,7 @@ namespace RehubSystem.Editor
 
         public override void OnInspectorGUI()
         {
-            EditorGUILayout.LabelField("RehubUI", UIStyles.header, GUILayout.ExpandWidth(true));
+            EditorGUILayout.LabelField("Rehub System", UIStyles.header, GUILayout.ExpandWidth(true));
             EditorGUILayout.LabelField("v" + Updater.CurrentVersion, UIStyles.center, GUILayout.ExpandWidth(true));
             EditorGUILayout.Space();
 
@@ -304,16 +304,10 @@ namespace RehubSystem.Editor
                     EditorGUILayout.HelpBox($"{EditorI18n.GetTranslation("uniqueModuleDuplicatedError")}\n{duplicatedModules}", MessageType.Error);
                 }
 
-                _showExtensionModuleReference = EditorGUILayout.Foldout(_showExtensionModuleReference, EditorI18n.GetTranslation("extensionModuleDescription"));
-                if (_showExtensionModuleReference)
+                EditorGUILayout.Space();
+                if (GUILayout.Button(EditorI18n.GetTranslation("goModuleListPage")))
                 {
-                    EditorGUILayout.Space();
-                    if (GUILayout.Button(EditorI18n.GetTranslation("goModuleListPage")))
-                    {
-                        ModuleMarketplaceWindow.OpenWindow();
-                    }
-
-                    EditorGUILayout.LabelField(EditorI18n.GetTranslation("extensionMarketplaceNotConfigured"));
+                    ModuleMarketplaceWindow.OpenWindow();
                 }
             }
 
@@ -514,54 +508,32 @@ namespace RehubSystem.Editor
 
         private void TabVersionInfo()
         {
-            UIStyles.TitleBox("RehubUI", margin: false);
+            UIStyles.TitleBox("Rehub System", margin: false);
             EditorGUILayout.Space();
 
-#pragma warning disable CS0162
-            if (Updater.availableVpmResolver)
+            if (Updater.CheckingForUpdate)
             {
-                if (Updater.AvailableUpdate)
+                EditorGUILayout.LabelField(EditorI18n.GetTranslation("checkingForUpdate"));
+            }
+            else if (Updater.AvailableUpdate)
+            {
+                EditorGUILayout.LabelField($"{EditorI18n.GetTranslation("newUpdateAvailable")} (v{Updater.CurrentVersion} -> v{Updater.LatestVersion})");
+                EditorGUI.BeginDisabledGroup(!Updater.CanInstallUpdate);
+                if (GUILayout.Button(EditorI18n.GetTranslation("update"), GUILayout.Height(32)))
                 {
-                    EditorGUILayout.LabelField($"{EditorI18n.GetTranslation("updateAvailable")} (v{Updater.CurrentVersion} -> v{Updater.LatestVersion})");
+                    Updater.RunUpdate();
                 }
-                else if(Updater.LatestVersion == null)
-                {
-                    EditorGUILayout.LabelField(EditorI18n.GetTranslation("checkingForUpdate"));
-                }
-                else
-                {
-                    EditorGUILayout.LabelField($"{EditorI18n.GetTranslation("upToDate")} (v{Updater.CurrentVersion})");
-                }
-
-                
-                EditorGUILayout.Space();
-
-                using (var x = new EditorGUI.ChangeCheckScope())
-                {
-                    Updater.UseUnstableVersion = EditorGUILayout.ToggleLeft(EditorI18n.GetTranslation("useUnstableVersion"), Updater.UseUnstableVersion);
-                    if (x.changed)
-                    {
-                        Updater.CheckForUpdate();
-                    }
-                }
-
-                if (Updater.AvailableUpdate)
-                {
-                    EditorGUILayout.Space();
-                    if (GUILayout.Button(EditorI18n.GetTranslation("update"), GUILayout.Height(32)))
-                    {
-                        Updater.RunUpdate();
-                    }
-                }
+                EditorGUI.EndDisabledGroup();
             }
             else
             {
-                EditorGUILayout.LabelField(EditorI18n.GetTranslation("currentVersion"), Updater.CurrentVersion);
-                
-                EditorGUILayout.Space();
-                EditorGUILayout.HelpBox(EditorI18n.GetTranslation("vpmResolverNotImported"), MessageType.Warning);
+                EditorGUILayout.LabelField($"{EditorI18n.GetTranslation("upToDate")} (v{Updater.CurrentVersion})");
             }
-#pragma warning restore CS0162
+
+            if (GUILayout.Button(EditorI18n.GetTranslation("checkForUpdates")))
+            {
+                Updater.CheckForUpdate();
+            }
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField(EditorI18n.GetTranslation("versionListingSource"), ModuleVersionManager.ListingUrl);

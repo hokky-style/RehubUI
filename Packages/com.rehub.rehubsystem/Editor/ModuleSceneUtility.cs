@@ -47,7 +47,7 @@ namespace RehubSystem.Editor
         {
             if (moduleObject == null || moduleContainer == null) return;
 
-            var moduleList = moduleObject.GetComponent<global::RehubSystem.AssetListModule>();
+            var moduleList = FindModuleManagerConsumer(moduleObject);
             if (moduleList == null) return;
 
             var moduleManager = moduleContainer.root.GetComponentInChildren<ModuleManager>(true);
@@ -56,6 +56,22 @@ namespace RehubSystem.Editor
             var serializedModuleList = new SerializedObject(moduleList);
             serializedModuleList.FindProperty("_moduleManager").objectReferenceValue = moduleManager;
             serializedModuleList.ApplyModifiedProperties();
+        }
+
+        private static Component FindModuleManagerConsumer(GameObject moduleObject)
+        {
+            foreach (var component in moduleObject.GetComponents<Component>())
+            {
+                if (component == null) continue;
+
+                var serializedObject = new SerializedObject(component);
+                if (serializedObject.FindProperty("_moduleManager") != null)
+                {
+                    return component;
+                }
+            }
+
+            return null;
         }
 
         public static string GetEmbeddedModuleVersion(string moduleId)
@@ -91,7 +107,7 @@ namespace RehubSystem.Editor
             return null;
         }
 
-        private static IEnumerable<GameObject> GetInstalledModulePrefabs()
+        public static IEnumerable<GameObject> GetInstalledModulePrefabs()
         {
             var prefabGuids = AssetDatabase.FindAssets("t:Prefab", new[] { ModulesSearchRoot });
             foreach (var guid in prefabGuids)
