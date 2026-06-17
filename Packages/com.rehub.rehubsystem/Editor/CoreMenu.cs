@@ -535,46 +535,6 @@ namespace RehubSystem.Editor
                 Updater.CheckForUpdate();
             }
 
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField(EditorI18n.GetTranslation("versionListingSource"), ModuleVersionManager.ListingUrl);
-
-            if (GUILayout.Button(EditorI18n.GetTranslation("checkForUpdates")))
-            {
-                ModuleVersionManager.CheckLatestVersions();
-            }
-
-            if (ModuleVersionManager.AvailableModules)
-            {
-                UIStyles.TitleBox(EditorI18n.GetTranslation("modules"));
-                
-                EditorGUILayout.Space();
-
-                foreach (var item in ModuleVersionManager.CurrentVersions)
-                {
-                    var packageName = item.Key;
-                    EditorGUILayout.LabelField(ModuleVersionManager.GetPackageName(packageName), EditorStyles.boldLabel);
-
-                    if (ModuleVersionManager.HasUpdate(packageName))
-                    {
-                        EditorGUILayout.LabelField($"{EditorI18n.GetTranslation("updateAvailable")} (v{item.Value} -> v{ModuleVersionManager.GetLatestVersion(packageName)})");
-                    }
-                    else
-                    {
-                        EditorGUILayout.LabelField($"{EditorI18n.GetTranslation("upToDate")} (v{item.Value})");
-                    }
-
-                    EditorGUILayout.Space();
-                }
-
-                if (ModuleVersionManager.AvailableUpdate)
-                {
-                    if (GUILayout.Button(EditorI18n.GetTranslation("downloadLatestVersion"), GUILayout.Height(32)))
-                    {
-                        Application.OpenURL(ModuleVersionManager.ReleasesUrl);
-                    }
-                }
-            }
-
             UIStyles.TitleBox(EditorI18n.GetTranslation("links"));
 
             if (_uiManagerSerializedObject != null)

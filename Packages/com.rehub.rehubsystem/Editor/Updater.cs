@@ -4,6 +4,7 @@ using System.Net.Http;
 using UnityEditor;
 using UnityEngine;
 using VRC.SDK3.Data;
+using RehubSystem.EditorShared;
 
 namespace RehubSystem.Editor
 {

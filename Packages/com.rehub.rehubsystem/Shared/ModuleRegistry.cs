@@ -30,8 +30,7 @@ namespace RehubSystem.EditorShared
             { "ModuleListModule", new ModuleRegistryItem(EditorI18n.InternalEditorI18n, "moduleList", "ed33d988b3d716742ab7e0adade59fcc") },
             { "WorldChangelogModule", new ModuleRegistryItem(EditorI18n.InternalEditorI18n, "worldChangelog", "fb42e405e8429a640a8888686a29bc4b") },
             { "FreeTextModule", new ModuleRegistryItem(EditorI18n.InternalEditorI18n, "freeText", "e2c7e8e62ca41ed46908f8a196e671ab") },
-            { "UIElementsTestModule", new ModuleRegistryItem(EditorI18n.InternalEditorI18n, "uiElementsTest", "9a7e31cc0f654f3a9d7d4c4f08d824a1") },
-            { "VideoPlayerModule", new ModuleRegistryItem(EditorI18n.InternalEditorI18n, "videoPlayer", "5c1a34c6d5f64d54a9c57c4d6b72a35d") }
+            { "UIElementsTestModule", new ModuleRegistryItem(EditorI18n.InternalEditorI18n, "uiElementsTest", "9a7e31cc0f654f3a9d7d4c4f08d824a1") }
         };
 
         public static Dictionary<string, ModuleRegistryItem> ModuleList => _moduleList;
