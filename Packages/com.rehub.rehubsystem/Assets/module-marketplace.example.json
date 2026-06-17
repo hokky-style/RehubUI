@@ -3,7 +3,7 @@
   "modules": [
     {
       "id": "com.rehub.module.player",
-      "name": "Rehub Player",
+      "name": "Yama Player",
       "version": "1.0.0",
       "description": "Video player module for RehubUI.",
       "author": "RehubUI",
