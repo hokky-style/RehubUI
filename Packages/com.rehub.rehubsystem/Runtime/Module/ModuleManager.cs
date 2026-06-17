@@ -10,7 +10,7 @@ namespace RehubSystem
     {
         [SerializeField] private Transform _modulesRoot;
         [SerializeField] private ModuleMetadata[] _systemModules;
-        private ModuleMetadata[] _modules;
+        private ModuleMetadata[] _modules = new ModuleMetadata[0];
         private DataList _availableModules = new DataList();
         private bool _isInitialized = false;
 
@@ -28,8 +28,19 @@ namespace RehubSystem
             if (_isInitialized) return;
             _isInitialized = true;
 
-            _modules = _modulesRoot.GetComponentsInChildren<ModuleMetadata>();
-            _modules = ArrayUtils.Concat(_modules, _systemModules);
+            var installedModules = new ModuleMetadata[0];
+            if (_modulesRoot != null)
+            {
+                installedModules = new ModuleMetadata[_modulesRoot.childCount];
+                for (int i = 0; i < _modulesRoot.childCount; i++)
+                {
+                    var child = _modulesRoot.GetChild(i);
+                    installedModules[i] = child != null ? child.GetComponent<ModuleMetadata>() : null;
+                }
+            }
+
+            var systemModules = _systemModules != null ? _systemModules : new ModuleMetadata[0];
+            _modules = ArrayUtils.Concat(installedModules, systemModules);
 
             foreach (var module in _modules)
             {
@@ -42,7 +53,6 @@ namespace RehubSystem
                 }
 
                 _availableModules.Add(module.ModuleId);
-                module.i18nManager = module.GetComponent<I18nManager>(); // cache
             }
         }
 

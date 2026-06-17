@@ -120,7 +120,8 @@ namespace RehubSystem
             CreateHomeNavigationButton();
 
             var pinnedNavigationButtons = 0;
-            foreach (var module in _moduleManager.Modules)
+            var modules = _moduleManager != null && _moduleManager.Modules != null ? _moduleManager.Modules : new ModuleMetadata[0];
+            foreach (var module in modules)
             {
                 if (module == null)
                 {
@@ -199,10 +200,9 @@ namespace RehubSystem
 
                 module.Activate();
 
-                var moduleI18n = module.GetComponent<I18nManager>();
-                if (moduleI18n != null)
+                if (module.i18nManager != null)
                 {
-                    moduleI18n.masterManager = _i18nManager;
+                    module.i18nManager.masterManager = _i18nManager;
                 }
             }
 

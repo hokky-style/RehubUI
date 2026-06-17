@@ -15,8 +15,8 @@
                     "dependencies": { "com.unity.nuget.newtonsoft-json": "3.2.1" },
                     "vpmDependencies": { "com.vrchat.worlds": ">=3.8.1" },
                     "author": { "name": "hokky", "url": "https://github.com/hokky-style" },
-                    "zipSHA256": "42a1024d58d9d962eeb6a6f18628f1213256ce1cdd2b4e2a2b02df7c34be7871",
-                    "url": "https://github.com/hokky-style/RehubUI/releases/download/release/com.rehub.rehubsystem.zip"
+                    "zipSHA256": "ea7d81c3b8107f5a23237f60af65b50db6c07c04d6f2c87b55bad021af09a0cb",
+                    "url": "https://github.com/hokky-style/RehubUI/releases/download/release/RehubSystem-1.0.0.zip"
                 }
             }
         }
