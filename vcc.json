@@ -11,13 +11,12 @@
                     "displayName": "Rehub System",
                     "version": "1.0.0",
                     "unity": "2022.3",
-                    "description": "World systems + UI menu",
+                    "description": "Rehub System + UI menu",
                     "dependencies": { "com.unity.nuget.newtonsoft-json": "3.2.1" },
                     "vpmDependencies": { "com.vrchat.worlds": ">=3.8.1" },
                     "author": { "name": "hokky", "url": "https://github.com/hokky-style" },
-                    "zipSHA256": "b4be4cef249aa0f4c016edf06aa7d518e83f704a5c3ea740e1cb77fc1453ce11",
-                    "url": "https://github.com/koorimizuw/YamaPlayer/releases/download/2.0.0-beta.6/net.kwxxw.yama-stream-2.0.0-beta.6.zip",
-                    "legacyFolders": { "Assets\\Yamadev\\YamaStream": "af99c59180c62fb41ab655b73f426e61" }
+                    "zipSHA256": "6e5bfa489547cfd5031629f95de3bb7e337eeaeae6ef910fddd370a0de4e08c8",
+                    "url": "https://github.com/hokky-style/RehubUI/releases/download/release/com.rehub.rehubsystem.zip"
                 }
             }
         }
