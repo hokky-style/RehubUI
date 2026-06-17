@@ -8,7 +8,6 @@
       "description": "Video player module for RehubUI.",
       "author": "RehubUI",
       "moduleId": "RehubPlayerModule",
-      "packageUrl": "https://github.com/hokky-style/RehubUI.git?path=/Packages/com.rehub.module.player",
       "unityPackageUrl": "https://github.com/hokky-style/RehubUI/releases/download/modules/RehubPlayer-1.0.0.unitypackage",
       "pageUrl": "https://discord.gg/EKNUQDsKSK"
     }

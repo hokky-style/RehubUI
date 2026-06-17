@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using UnityEditor;
-using UnityEditor.PackageManager;
-using UnityEditor.PackageManager.Requests;
 using UnityEngine;
 using RehubSystem.EditorShared;
 
@@ -20,7 +18,6 @@ namespace RehubSystem.Editor
         private Vector2 _scroll;
         private string _status;
         private bool _isLoading;
-        private AddRequest _installRequest;
         private string _installingModuleName;
 
         [MenuItem("Window/RehubUI/Module Marketplace")]
@@ -37,11 +34,6 @@ namespace RehubSystem.Editor
             {
                 RefreshMarketplace();
             }
-        }
-
-        private void OnDisable()
-        {
-            EditorApplication.update -= WatchInstallRequest;
         }
 
         private void OnGUI()
@@ -109,15 +101,17 @@ namespace RehubSystem.Editor
 
                 EditorGUILayout.LabelField(module.id, EditorStyles.miniLabel);
 
-                var installedVersion = GetInstalledVersion(module.id);
+                var installedVersion = GetEmbeddedModuleVersion(module.ModuleId);
                 if (!string.IsNullOrEmpty(installedVersion))
                 {
                     EditorGUILayout.LabelField($"{EditorI18n.GetTranslation("installedVersion")}: v{installedVersion}");
                 }
 
+                EditorGUILayout.LabelField($"{EditorI18n.GetTranslation("installMode")}: UnityPackage", EditorStyles.miniLabel);
+
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(module.packageUrl) || _installRequest != null);
+                    EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(module.unityPackageUrl) || _isLoading);
                     var installLabel = string.IsNullOrEmpty(installedVersion)
                         ? EditorI18n.GetTranslation("installModule")
                         : EditorI18n.GetTranslation("updateModule");
@@ -205,47 +199,73 @@ namespace RehubSystem.Editor
             return "{\"version\":1,\"modules\":[]}";
         }
 
-        private void InstallModule(MarketplaceModule module)
+        private async void InstallModule(MarketplaceModule module)
         {
-            if (string.IsNullOrEmpty(module.packageUrl)) return;
+            if (string.IsNullOrEmpty(module.unityPackageUrl)) return;
 
             _installingModuleName = module.DisplayName;
             _status = string.Format(EditorI18n.GetTranslation("installingModule"), _installingModuleName);
-            _installRequest = Client.Add(module.packageUrl);
-            EditorApplication.update -= WatchInstallRequest;
-            EditorApplication.update += WatchInstallRequest;
-        }
+            Repaint();
 
-        private void WatchInstallRequest()
-        {
-            if (_installRequest == null || !_installRequest.IsCompleted) return;
-
-            if (_installRequest.Status == StatusCode.Success)
+            try
             {
+                var directory = Path.Combine(Path.GetTempPath(), "RehubUI");
+                Directory.CreateDirectory(directory);
+
+                var fileName = SanitizeFileName(module.ModuleId) + "-" + SanitizeFileName(module.version) + ".unitypackage";
+                var filePath = Path.Combine(directory, fileName);
+
+                using (var client = new HttpClient())
+                {
+                    var bytes = await client.GetByteArrayAsync(module.unityPackageUrl);
+                    File.WriteAllBytes(filePath, bytes);
+                }
+
+                AssetDatabase.ImportPackage(filePath, false);
+                AssetDatabase.Refresh();
                 _status = string.Format(EditorI18n.GetTranslation("moduleInstallSuccess"), _installingModuleName);
             }
-            else
+            catch (Exception e)
             {
-                _status = $"{EditorI18n.GetTranslation("moduleInstallFailed")}: {_installRequest.Error?.message}";
+                _status = $"{EditorI18n.GetTranslation("moduleInstallFailed")}: {e.Message}";
             }
-
-            _installRequest = null;
-            _installingModuleName = null;
-            EditorApplication.update -= WatchInstallRequest;
-            Repaint();
+            finally
+            {
+                _installingModuleName = null;
+                Repaint();
+            }
         }
 
-        private static string GetInstalledVersion(string packageName)
+        private static string GetEmbeddedModuleVersion(string moduleId)
         {
-            foreach (var package in UnityEditor.PackageManager.PackageInfo.GetAllRegisteredPackages())
+            if (string.IsNullOrEmpty(moduleId)) return string.Empty;
+
+            var prefabGuids = AssetDatabase.FindAssets("t:Prefab", new[] { "Packages/com.rehub.rehubsystem/Runtime/Modules" });
+            foreach (var guid in prefabGuids)
             {
-                if (package.name == packageName)
-                {
-                    return package.version;
-                }
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab == null) continue;
+
+                var metadata = prefab.GetComponent<global::RehubSystem.ModuleMetadata>();
+                if (metadata == null || metadata.ModuleId != moduleId) continue;
+
+                return string.IsNullOrEmpty(metadata.moduleVersion) ? "1.0.0" : metadata.moduleVersion;
             }
 
             return string.Empty;
+        }
+
+        private static string SanitizeFileName(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return "module";
+
+            foreach (var invalidChar in Path.GetInvalidFileNameChars())
+            {
+                value = value.Replace(invalidChar, '-');
+            }
+
+            return value;
         }
     }
 
@@ -264,9 +284,11 @@ namespace RehubSystem.Editor
         public string version;
         public string description;
         public string author;
-        public string packageUrl;
+        public string moduleId;
+        public string unityPackageUrl;
         public string pageUrl;
 
         public string DisplayName => string.IsNullOrEmpty(name) ? id : name;
+        public string ModuleId => string.IsNullOrEmpty(moduleId) ? id : moduleId;
     }
 }
