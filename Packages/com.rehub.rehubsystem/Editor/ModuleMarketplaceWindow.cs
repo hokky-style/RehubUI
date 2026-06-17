@@ -10,7 +10,7 @@ namespace RehubSystem.Editor
 {
     public class ModuleMarketplaceWindow : EditorWindow
     {
-        private const string MarketplaceUrl = "https://raw.githubusercontent.com/hokky-style/RehubUI/main/module-marketplace.example.json";
+        private const string MarketplaceUrl = "https://raw.githubusercontent.com/hokky-style/RehubUI/refs/heads/main/module-marketplace.example.json";
         private const string DiscordUrl = "https://discord.gg/EKNUQDsKSK";
         private const string FallbackMarketplacePath = "Packages/com.rehub.rehubsystem/Assets/module-marketplace.example.json";
 
@@ -147,7 +147,7 @@ namespace RehubSystem.Editor
                 {
                     using (var client = new HttpClient())
                     {
-                        result = await client.GetStringAsync(MarketplaceUrl);
+                        result = await client.GetStringAsync(BuildMarketplaceRequestUrl());
                     }
                 }
                 catch
@@ -170,7 +170,7 @@ namespace RehubSystem.Editor
                     }
                 }
 
-                _status = string.Format(EditorI18n.GetTranslation(loadedFromFallback ? "marketplaceLoadedFromFallback" : "marketplaceLoaded"), _modules.Count);
+                _status = string.Format(EditorI18n.GetTranslation(loadedFromFallback ? "marketplaceLoadedFromFallback" : "marketplaceLoaded"), _modules.Count, MarketplaceUrl);
             }
             catch (Exception e)
             {
@@ -197,6 +197,11 @@ namespace RehubSystem.Editor
             }
 
             return "{\"version\":1,\"modules\":[]}";
+        }
+
+        private static string BuildMarketplaceRequestUrl()
+        {
+            return MarketplaceUrl + "?rehubCacheBust=" + DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         }
 
         private async void InstallModule(MarketplaceModule module)
