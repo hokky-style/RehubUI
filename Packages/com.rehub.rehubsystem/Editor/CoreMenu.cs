@@ -96,10 +96,7 @@ namespace RehubSystem.Editor
 
         private void GenerateList()
         {
-            if (_modulesCache == null)
-            {
-                _modulesCache = _moduleContainer.GetComponentsInChildren<ModuleMetadata>().ToList();
-            }
+            _modulesCache = ModuleSceneUtility.GetSceneModules(_moduleContainer);
 
             _listDrawer = new ListDrawer(_modulesCache, new ListDrawerCallbacks() {
                 drawHeader = () => EditorI18n.GetTranslation("modules"),
@@ -141,37 +138,36 @@ namespace RehubSystem.Editor
                     var menu = new GenericMenu();
                     UniqueModuleDuplicateCheck();
 
-                    foreach (var m in ModuleRegistry.ModuleList)
+                    var installedModulePrefabs = AssetDatabase.FindAssets("t:Prefab", new[] { "Packages/com.rehub.rehubsystem/Runtime/Modules" })
+                        .Select(AssetDatabase.GUIDToAssetPath)
+                        .Select(path => AssetDatabase.LoadAssetAtPath<GameObject>(path))
+                        .Where(prefab => prefab != null && prefab.GetComponent<ModuleMetadata>() != null)
+                        .Select(prefab => new { Prefab = prefab, Metadata = prefab.GetComponent<ModuleMetadata>() })
+                        .OrderBy(item => ModuleRegistry.ModuleList.TryGetValue(item.Metadata.ModuleId, out var registryItem) ? registryItem.GetTitle() : item.Metadata.moduleName)
+                        .ToList();
+
+                    foreach (var m in installedModulePrefabs)
                     {
-                        if (!_usedUniqueModuleIds.Contains(m.Key))
+                        var moduleId = m.Metadata.ModuleId;
+                        var moduleTitle = ModuleRegistry.ModuleList.TryGetValue(moduleId, out var registryItem) ? registryItem.GetTitle() : m.Metadata.moduleName;
+
+                        if (!_usedUniqueModuleIds.Contains(moduleId))
                         {
-                            var module = m.Value;
-                            menu.AddItem(new GUIContent(module.GetTitle()), false, () =>
+                            var modulePrefab = m.Prefab;
+                            menu.AddItem(new GUIContent(moduleTitle), false, () =>
                             {
-                                var item = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(module.PrefabGuid));
-                                if (item == null) return;
-                                var prefab = PrefabUtility.InstantiatePrefab(item, _moduleContainer.transform) as GameObject;
+                                var prefab = PrefabUtility.InstantiatePrefab(modulePrefab, _moduleContainer.transform) as GameObject;
+                                if (prefab == null) return;
                                 var moduleMetadata = prefab.GetComponent<ModuleMetadata>();
                                 _modulesCache.Add(moduleMetadata);
-
-                                var moduleList = prefab.GetComponent<AssetListModule>();
-                                if (moduleList != null)
-                                {
-                                    var moduleManager = _moduleContainer.root.GetComponentInChildren<ModuleManager>(true);
-                                    if (moduleManager != null)
-                                    {
-                                        var serializedModuleList = new SerializedObject(moduleList);
-                                        serializedModuleList.FindProperty("_moduleManager").objectReferenceValue = moduleManager;
-                                        serializedModuleList.ApplyModifiedProperties();
-                                    }
-                                }
+                                ModuleSceneUtility.ConfigureModuleInstance(prefab, _moduleContainer);
 
                                 UniqueModuleDuplicateCheck(true);
                             });
                         }
                         else
                         {
-                            menu.AddDisabledItem(new GUIContent(m.Value.GetTitle()));
+                            menu.AddDisabledItem(new GUIContent(moduleTitle));
                         }
                     }
 
@@ -291,6 +287,14 @@ namespace RehubSystem.Editor
             else
             {
                 _listDrawer.Draw();
+
+                if (GUILayout.Button(EditorI18n.GetTranslation("syncInstalledModules")))
+                {
+                    _modulesCache = ModuleSceneUtility.SyncInstalledModulesToScene(_moduleContainer);
+                    GenerateList();
+                    UniqueModuleDuplicateCheck(true);
+                    EditorUtility.SetDirty(((RehubSystemCore)target).gameObject);
+                }
 
                 UniqueModuleDuplicateCheck();
                 if (_duplicatedUniqueModuleIds != null && _duplicatedUniqueModuleIds.Count > 0)

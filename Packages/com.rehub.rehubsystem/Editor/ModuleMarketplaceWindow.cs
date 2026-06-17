@@ -101,7 +101,7 @@ namespace RehubSystem.Editor
 
                 EditorGUILayout.LabelField(module.id, EditorStyles.miniLabel);
 
-                var installedVersion = GetEmbeddedModuleVersion(module.ModuleId);
+                var installedVersion = ModuleSceneUtility.GetEmbeddedModuleVersion(module.ModuleId);
                 var installState = GetInstallState(installedVersion, module.version);
                 if (!string.IsNullOrEmpty(installedVersion))
                 {
@@ -233,6 +233,7 @@ namespace RehubSystem.Editor
 
                 AssetDatabase.ImportPackage(filePath, false);
                 AssetDatabase.Refresh();
+                SyncInstalledModuleToOpenRehubSystems();
                 _status = string.Format(EditorI18n.GetTranslation("moduleInstallSuccess"), _installingModuleName);
             }
             catch (Exception e)
@@ -246,30 +247,6 @@ namespace RehubSystem.Editor
             }
         }
 
-        private static string GetEmbeddedModuleVersion(string moduleId)
-        {
-            if (string.IsNullOrEmpty(moduleId)) return string.Empty;
-
-            var normalizedTargetId = NormalizeModuleId(moduleId);
-            var prefabGuids = AssetDatabase.FindAssets("t:Prefab", new[] { "Packages/com.rehub.rehubsystem/Runtime/Modules" });
-            foreach (var guid in prefabGuids)
-            {
-                var path = AssetDatabase.GUIDToAssetPath(guid);
-                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                if (prefab == null) continue;
-
-                var metadata = prefab.GetComponent<global::RehubSystem.ModuleMetadata>();
-                if (metadata == null) continue;
-
-                var normalizedInstalledId = NormalizeModuleId(metadata.ModuleId);
-                if (metadata.ModuleId != moduleId && normalizedInstalledId != normalizedTargetId) continue;
-
-                return string.IsNullOrEmpty(metadata.moduleVersion) ? "1.0.0" : metadata.moduleVersion;
-            }
-
-            return string.Empty;
-        }
-
         private static string SanitizeFileName(string value)
         {
             if (string.IsNullOrEmpty(value)) return "module";
@@ -280,6 +257,21 @@ namespace RehubSystem.Editor
             }
 
             return value;
+        }
+
+        private static void SyncInstalledModuleToOpenRehubSystems()
+        {
+            var cores = Resources.FindObjectsOfTypeAll<RehubSystemCore>();
+            foreach (var core in cores)
+            {
+                if (core == null) continue;
+
+                var moduleManager = core.GetComponentInChildren<ModuleManager>(true);
+                if (moduleManager == null || moduleManager.ModulesRoot == null) continue;
+
+                ModuleSceneUtility.SyncInstalledModulesToScene(moduleManager.ModulesRoot);
+                EditorUtility.SetDirty(core.gameObject);
+            }
         }
 
         private static MarketplaceInstallState GetInstallState(string installedVersion, string marketplaceVersion)
@@ -312,18 +304,6 @@ namespace RehubSystem.Editor
             }
         }
 
-        private static string NormalizeModuleId(string value)
-        {
-            if (string.IsNullOrEmpty(value)) return string.Empty;
-
-            var normalized = value.ToLowerInvariant()
-                .Replace(" ", string.Empty)
-                .Replace("-", string.Empty)
-                .Replace("_", string.Empty)
-                .Replace(".", string.Empty);
-
-            return normalized.EndsWith("module") ? normalized.Substring(0, normalized.Length - "module".Length) : normalized;
-        }
     }
 
     internal enum MarketplaceInstallState
