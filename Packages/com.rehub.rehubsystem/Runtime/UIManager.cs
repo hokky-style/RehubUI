@@ -971,17 +971,32 @@ namespace RehubSystem
             var verifiedStatus = _verifiedUsersLoaded && _localPlayerVerified;
 
             var content =
-                $"Synchronization: {FormatStatusValue(synchronized)}\n" +
-                $"Instance master: {FormatStatusValue(isInstanceMaster)}\n" +
-                $"Instance owner: {FormatStatusValue(isInstanceOwner)}\n" +
-                $"Verified user: {FormatStatusValue(verifiedStatus)}";
+                $"☁ {GetSystemTranslation("statusSynchronization", "Synchronization")}: {FormatStatusValue(synchronized)}\n" +
+                $"● {GetSystemTranslation("statusInstanceMaster", "Instance master")}: {FormatStatusValue(isInstanceMaster)}\n" +
+                $"♛ {GetSystemTranslation("statusInstanceOwner", "Instance owner")}: {FormatStatusValue(isInstanceOwner)}\n" +
+                $"✓ {GetSystemTranslation("statusVerifiedUser", "Verified user")}: {FormatStatusValue(verifiedStatus)}";
 
-            ShowModalWindow("RehubUI Status", content, "Close");
+            ShowModalWindow(
+                GetSystemTranslation("statusModalTitle", "RehubUI Status"),
+                content,
+                GetSystemTranslation("close", "Close"));
         }
 
         private string FormatStatusValue(bool value)
         {
-            return value ? "Yes" : "No";
+            return value ? GetSystemTranslation("statusYes", "Yes") : GetSystemTranslation("statusNo", "No");
+        }
+
+        private string GetSystemTranslation(string key, string fallback)
+        {
+            if (_i18nManager == null) return fallback;
+            if (!_i18nManager.Initialized)
+            {
+                _i18nManager.BuildLocalization();
+            }
+
+            var translation = _i18nManager.GetTranslation(key);
+            return string.IsNullOrEmpty(translation) ? fallback : translation;
         }
 
         public void ShowModalWindow(string title, string content, string closeButtonText)

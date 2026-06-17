@@ -49,25 +49,7 @@ namespace RehubSystem
 
             if (_statusText == null) return;
 
-            if (_uiManager == null)
-            {
-                _statusText.text = "Version status unavailable";
-                return;
-            }
-
-            if (!_uiManager.VersionListingLoaded)
-            {
-                _statusText.text = "Unable to check for updates";
-                return;
-            }
-
-            if (_uiManager.VersionUpdateAvailable)
-            {
-                _statusText.text = $"New version available: {_uiManager.LatestSystemVersion}";
-                return;
-            }
-
-            _statusText.text = "You are using the latest version";
+            _statusText.text = "Rehub Systems";
         }
 
         private Text FindStatusText()

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "modules": [
+    {
+      "id": "com.rehub.module.player",
+      "name": "Rehub Player",
+      "version": "1.0.0",
+      "description": "Video player module for RehubUI.",
+      "author": "RehubUI",
+      "packageUrl": "https://github.com/hokky-style/RehubUI.git?path=/Packages/com.rehub.module.player",
+      "pageUrl": "https://discord.gg/EKNUQDsKSK"
+    }
+  ]
+}

@@ -306,7 +306,7 @@ namespace RehubSystem.Editor
                     EditorGUILayout.Space();
                     if (GUILayout.Button(EditorI18n.GetTranslation("goModuleListPage")))
                     {
-                        Debug.Log("RehubUI module documentation is not configured yet.");
+                        ModuleMarketplaceWindow.OpenWindow();
                     }
 
                     EditorGUILayout.LabelField(EditorI18n.GetTranslation("extensionMarketplaceNotConfigured"));
