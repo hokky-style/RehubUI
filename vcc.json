@@ -16,7 +16,7 @@
                     "vpmDependencies": { "com.vrchat.worlds": ">=3.8.1" },
                     "author": { "name": "hokky", "url": "https://github.com/hokky-style" },
                     "zipSHA256": "fdbb993a6296b9caebd2ea0c0daa048584c8e8eaf12ecd4edc220bd77f13fa4a",
-                    "url": "https://github.com/hokky-style/RehubUI/releases/download/release/RehubSystem-1.0.0.zip"
+                    "url": "https://github.com/hokky-style/RehubUI/releases/download/release/Rehub-System-v1.0.0.zip"
                 }
             }
         }
