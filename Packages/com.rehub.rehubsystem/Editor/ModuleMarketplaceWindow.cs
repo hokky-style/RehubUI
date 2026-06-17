@@ -110,14 +110,21 @@ namespace RehubSystem.Editor
                 EditorGUILayout.LabelField(module.id, EditorStyles.miniLabel);
 
                 var installedVersion = GetInstalledVersion(module.id);
+                if (string.IsNullOrEmpty(installedVersion))
+                {
+                    installedVersion = GetEmbeddedModuleVersion(module.ModuleId);
+                }
+
                 if (!string.IsNullOrEmpty(installedVersion))
                 {
                     EditorGUILayout.LabelField($"{EditorI18n.GetTranslation("installedVersion")}: v{installedVersion}");
                 }
 
+                EditorGUILayout.LabelField($"{EditorI18n.GetTranslation("installMode")}: {module.InstallModeLabel}", EditorStyles.miniLabel);
+
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(module.packageUrl) || _installRequest != null);
+                    EditorGUI.BeginDisabledGroup(!module.HasInstallSource || _installRequest != null || _isLoading);
                     var installLabel = string.IsNullOrEmpty(installedVersion)
                         ? EditorI18n.GetTranslation("installModule")
                         : EditorI18n.GetTranslation("updateModule");
@@ -205,15 +212,55 @@ namespace RehubSystem.Editor
             return "{\"version\":1,\"modules\":[]}";
         }
 
-        private void InstallModule(MarketplaceModule module)
+        private async void InstallModule(MarketplaceModule module)
         {
-            if (string.IsNullOrEmpty(module.packageUrl)) return;
-
             _installingModuleName = module.DisplayName;
             _status = string.Format(EditorI18n.GetTranslation("installingModule"), _installingModuleName);
-            _installRequest = Client.Add(module.packageUrl);
-            EditorApplication.update -= WatchInstallRequest;
-            EditorApplication.update += WatchInstallRequest;
+            Repaint();
+
+            if (!string.IsNullOrEmpty(module.unityPackageUrl))
+            {
+                await InstallUnityPackage(module);
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(module.packageUrl))
+            {
+                _installRequest = Client.Add(module.packageUrl);
+                EditorApplication.update -= WatchInstallRequest;
+                EditorApplication.update += WatchInstallRequest;
+            }
+        }
+
+        private async System.Threading.Tasks.Task InstallUnityPackage(MarketplaceModule module)
+        {
+            try
+            {
+                var directory = Path.Combine(Path.GetTempPath(), "RehubUI");
+                Directory.CreateDirectory(directory);
+
+                var fileName = SanitizeFileName(module.ModuleId) + "-" + SanitizeFileName(module.version) + ".unitypackage";
+                var filePath = Path.Combine(directory, fileName);
+
+                using (var client = new HttpClient())
+                {
+                    var bytes = await client.GetByteArrayAsync(module.unityPackageUrl);
+                    File.WriteAllBytes(filePath, bytes);
+                }
+
+                AssetDatabase.ImportPackage(filePath, false);
+                AssetDatabase.Refresh();
+                _status = string.Format(EditorI18n.GetTranslation("moduleInstallSuccess"), module.DisplayName);
+            }
+            catch (Exception e)
+            {
+                _status = $"{EditorI18n.GetTranslation("moduleInstallFailed")}: {e.Message}";
+            }
+            finally
+            {
+                _installingModuleName = null;
+                Repaint();
+            }
         }
 
         private void WatchInstallRequest()
@@ -247,6 +294,38 @@ namespace RehubSystem.Editor
 
             return string.Empty;
         }
+
+        private static string GetEmbeddedModuleVersion(string moduleId)
+        {
+            if (string.IsNullOrEmpty(moduleId)) return string.Empty;
+
+            var prefabGuids = AssetDatabase.FindAssets("t:Prefab", new[] { "Packages/com.rehub.rehubsystem/Runtime/Modules" });
+            foreach (var guid in prefabGuids)
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab == null) continue;
+
+                var metadata = prefab.GetComponent<ModuleMetadata>();
+                if (metadata == null || metadata.ModuleId != moduleId) continue;
+
+                return string.IsNullOrEmpty(metadata.moduleVersion) ? "1.0.0" : metadata.moduleVersion;
+            }
+
+            return string.Empty;
+        }
+
+        private static string SanitizeFileName(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return "module";
+
+            foreach (var invalidChar in Path.GetInvalidFileNameChars())
+            {
+                value = value.Replace(invalidChar, '-');
+            }
+
+            return value;
+        }
     }
 
     [Serializable]
@@ -264,9 +343,14 @@ namespace RehubSystem.Editor
         public string version;
         public string description;
         public string author;
+        public string moduleId;
         public string packageUrl;
+        public string unityPackageUrl;
         public string pageUrl;
 
         public string DisplayName => string.IsNullOrEmpty(name) ? id : name;
+        public string ModuleId => string.IsNullOrEmpty(moduleId) ? id : moduleId;
+        public bool HasInstallSource => !string.IsNullOrEmpty(packageUrl) || !string.IsNullOrEmpty(unityPackageUrl);
+        public string InstallModeLabel => !string.IsNullOrEmpty(unityPackageUrl) ? "UnityPackage" : "UPM";
     }
 }
