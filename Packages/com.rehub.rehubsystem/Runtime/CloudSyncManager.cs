@@ -208,7 +208,18 @@ namespace RehubSystem
                     break;
             }
 
-            if (_syncStatusTheme != null) _syncStatusTheme.Apply();
+            ApplySyncStatusTheme();
+        }
+
+        private void ApplySyncStatusTheme()
+        {
+            if (_syncStatusTheme == null || _syncStatusTheme.themeManager == null) return;
+
+            var color = _syncStatusTheme.themeManager.GetColor(_syncStatusTheme.colorPalette, _syncStatusTheme.alpha);
+            if (_syncStatusImage != null) _syncStatusImage.color = color;
+
+            var text = _syncStatusTheme.GetComponent<Text>();
+            if (text != null) text.color = color;
         }
         #endregion
 

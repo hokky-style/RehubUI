@@ -296,6 +296,12 @@ namespace RehubSystem
             if (link.titleI18n != null && hasModuleLocalization && module.i18nManager.HasLocalization)
             {
                 link.titleI18n.manager = module.i18nManager;
+                link.titleI18n.key = "$moduleName";
+            }
+            else if (link.titleI18n != null)
+            {
+                link.titleI18n.manager = null;
+                link.titleI18n.key = null;
             }
 
             var navigationTitle = navigationButton != null ? navigationButton.transform.Find("Title") : null;
@@ -311,6 +317,12 @@ namespace RehubSystem
             if (navigationTitleI18n != null && hasModuleLocalization && module.i18nManager.HasLocalization)
             {
                 navigationTitleI18n.manager = module.i18nManager;
+                navigationTitleI18n.key = "$moduleName";
+            }
+            else if (navigationTitleI18n != null)
+            {
+                navigationTitleI18n.manager = null;
+                navigationTitleI18n.key = null;
             }
         }
 
@@ -563,14 +575,21 @@ namespace RehubSystem
                 return;
             }
 
-            if (!module.forceUseModuleName && module.i18nManager != null && module.i18nManager.HasLocalization && module.i18nManager.Initialized)
+            if (!module.forceUseModuleName && module.i18nManager != null)
             {
-                SetTitle(module.i18nManager.GetTranslation("$moduleName", _i18nManager.CurrentLanguage));
+                if (!module.i18nManager.Initialized)
+                {
+                    module.i18nManager.BuildLocalization();
+                }
+
+                if (module.i18nManager.HasLocalization)
+                {
+                    SetTitle(module.i18nManager.GetTranslation("$moduleName", _i18nManager.CurrentLanguage));
+                    return;
+                }
             }
-            else
-            {
-                SetTitle(module.moduleName);
-            }
+
+            SetTitle(module.moduleName);
         }
 
         private void SetBottomNavigationButtonSelected(string uuid, bool selected)
@@ -690,7 +709,19 @@ namespace RehubSystem
             if (theme == null) return;
             theme.themeManager = _themeManager;
             theme.colorPalette = palette;
-            theme.Apply();
+            ApplyThemeComponent(theme);
+        }
+
+        private void ApplyThemeComponent(ApplyTheme theme)
+        {
+            if (theme == null || _themeManager == null) return;
+
+            var color = _themeManager.GetColor(theme.colorPalette, theme.alpha);
+            var image = theme.GetComponent<Image>();
+            if (image != null) image.color = color;
+
+            var text = theme.GetComponent<Text>();
+            if (text != null) text.color = color;
         }
 
         private bool IsNameInRemoteList(string playerName)

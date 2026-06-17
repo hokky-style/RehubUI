@@ -52,6 +52,11 @@ namespace RehubSystem
                     continue;
                 }
 
+                if (module.i18nManager == null)
+                {
+                    module.i18nManager = module.gameObject.GetComponent<I18nManager>();
+                }
+
                 _availableModules.Add(module.ModuleId);
             }
         }

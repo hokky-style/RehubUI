@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using UdonSharp;
 using UnityEditor;
 using VRC.SDK3.Data;
@@ -62,14 +63,30 @@ namespace RehubSystem
 
         public void ApplyTheme()
         {
+            if (_controller == null) return;
+
             foreach (var canvas in _controller.Canvas)
             {
+                if (canvas == null) continue;
                 foreach (var component in canvas.GetComponentsInChildren<ApplyTheme>(true))
                 {
+                    if (component == null) continue;
                     if (component.themeManager == null) component.themeManager = this;
-                    component.Apply();
+                    ApplyToComponent(component);
                 }
             }
+        }
+
+        private void ApplyToComponent(ApplyTheme component)
+        {
+            if (component == null) return;
+
+            var color = GetColor(component.colorPalette, component.alpha);
+            var image = component.GetComponent<Image>();
+            if (image != null) image.color = color;
+
+            var text = component.GetComponent<Text>();
+            if (text != null) text.color = color;
         }
     }
 }

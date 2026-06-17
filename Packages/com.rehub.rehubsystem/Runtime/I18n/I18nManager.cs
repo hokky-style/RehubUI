@@ -4,6 +4,7 @@ using System.Globalization;
 using UdonSharp;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 using VRC.SDK3.Data;
 using VRC.SDKBase;
 using VRC.Udon;
@@ -181,16 +182,67 @@ namespace RehubSystem
 
             foreach (var canvas in _controller.Canvas)
             {
+                if (canvas == null) continue;
                 foreach (var component in canvas.GetComponentsInChildren<ApplyI18n>(true))
                 {
-                    component.Apply(_currentLanguage);
+                    ApplyTextComponent(component);
                 }
 
                 foreach (var component in canvas.GetComponentsInChildren<ApplyTimeI18n>(true))
                 {
-                    component.Apply();
+                    ApplyTimeComponent(component);
                 }
             }
+        }
+
+        private void ApplyTextComponent(ApplyI18n component)
+        {
+            if (component == null || string.IsNullOrEmpty(component.key)) return;
+
+            if (component.manager == null) component.manager = this;
+            if (component.manager == null || !component.manager.Initialized) return;
+
+            var text = component.GetComponent<Text>();
+            if (text == null) return;
+
+            text.text = component.args != null
+                ? component.manager.GetTranslationWithArgs(component.key, component.args, component.argValues, _currentLanguage)
+                : component.manager.GetTranslation(component.key, _currentLanguage);
+        }
+
+        private void ApplyTimeComponent(ApplyTimeI18n component)
+        {
+            if (component == null) return;
+
+            if (component.manager == null) component.manager = this;
+            if (component.manager == null || !component.manager.Initialized) return;
+
+            var text = component.GetComponent<Text>();
+            if (text == null) return;
+
+            var time = component.time != null ? component.time : DateTimeOffset.Now.ToLocalTime();
+            var timeFormat = string.Empty;
+
+            switch (component.format)
+            {
+                case I18nTimeFormat.DateTimeFull:
+                    timeFormat = "G";
+                    break;
+                case I18nTimeFormat.DateTimeShort:
+                    timeFormat = "g";
+                    break;
+                case I18nTimeFormat.TimeFull:
+                    timeFormat = "T";
+                    break;
+                case I18nTimeFormat.TimeShort:
+                    timeFormat = "t";
+                    break;
+                case I18nTimeFormat.Date:
+                    timeFormat = "d";
+                    break;
+            }
+
+            text.text = time.ToString(timeFormat, component.manager.CurrentCulture);
         }
 
 #if !COMPILER_UDONSHARP && UNITY_EDITOR
