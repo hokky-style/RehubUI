@@ -47,7 +47,7 @@ namespace RehubSystem.Editor
         {
             if (moduleObject == null || moduleContainer == null) return;
 
-            var moduleList = moduleObject.GetComponent<AssetListModule>();
+            var moduleList = moduleObject.GetComponent<global::RehubSystem.AssetListModule>();
             if (moduleList == null) return;
 
             var moduleManager = moduleContainer.root.GetComponentInChildren<ModuleManager>(true);
