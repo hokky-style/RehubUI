@@ -52,18 +52,23 @@ namespace RehubSystem
         #region Internal Methods
         private void Start()
         {
-            if (_syncStatus == null || _syncStatusUnknownIcon == null || _syncStatusSuccessIcon == null || _syncStatusErrorIcon == null)
+            if (_syncStatus != null)
             {
-                Debug.LogError("[CloudSyncManager] Missing required components.");
+                _syncStatusImage = _syncStatus.GetComponent<Image>();
+                _syncStatusTheme = _syncStatus.GetComponent<ApplyTheme>();
+            }
+
+            _cloudSyncUtils = GetComponent<CloudSyncUtils>();
+            if (_cloudSyncUtils == null || Networking.LocalPlayer == null)
+            {
+                Debug.LogError("[CloudSyncManager] Missing required runtime components.");
                 return;
             }
 
-            _syncStatusImage = _syncStatus.GetComponent<Image>();
-            _syncStatusTheme = _syncStatus.GetComponent<ApplyTheme>();
-            _cloudSyncUtils = GetComponent<CloudSyncUtils>();
             _uid = _cloudSyncUtils.MD5Hash(Networking.LocalPlayer.displayName);
             _key = _cloudSyncUtils.MD5Hash($"key_{_uid}");
             _initializedInternal = true;
+            SetState("unknown");
             RequestLoad();
         }
 
@@ -184,22 +189,26 @@ namespace RehubSystem
             {
                 case "success":
                     _lastState = "success";
-                    _syncStatusImage.sprite = _lastSaveTime == DateTimeOffset.MinValue ? _syncStatusUnknownIcon : _syncStatusSuccessIcon;
-                    _syncStatusTheme.colorPalette = persistence ? ColorPalette.Warning : ColorPalette.Success;
+                    if (_syncStatusImage != null)
+                    {
+                        var sprite = _lastSaveTime == DateTimeOffset.MinValue ? _syncStatusUnknownIcon : _syncStatusSuccessIcon;
+                        if (sprite != null) _syncStatusImage.sprite = sprite;
+                    }
+                    if (_syncStatusTheme != null) _syncStatusTheme.colorPalette = persistence ? ColorPalette.Warning : ColorPalette.Success;
                     break;
                 case "error":
                     _lastState = "error";
-                    _syncStatusImage.sprite = _syncStatusErrorIcon;
-                    _syncStatusTheme.colorPalette = ColorPalette.Error;
+                    if (_syncStatusImage != null && _syncStatusErrorIcon != null) _syncStatusImage.sprite = _syncStatusErrorIcon;
+                    if (_syncStatusTheme != null) _syncStatusTheme.colorPalette = ColorPalette.Error;
                     break;
                 default:
                     _lastState = "unknown";
-                    _syncStatusImage.sprite = _syncStatusUnknownIcon;
-                    _syncStatusTheme.colorPalette = ColorPalette.Text;
+                    if (_syncStatusImage != null && _syncStatusUnknownIcon != null) _syncStatusImage.sprite = _syncStatusUnknownIcon;
+                    if (_syncStatusTheme != null) _syncStatusTheme.colorPalette = ColorPalette.Text;
                     break;
             }
 
-            _syncStatusTheme.Apply();
+            if (_syncStatusTheme != null) _syncStatusTheme.Apply();
         }
         #endregion
 
