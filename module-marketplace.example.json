@@ -34,7 +34,7 @@
 	{
       "id": "com.rehub.uitest",
       "name": "UI Elements",
-      "version": "1.1.0",
+      "version": "1.0.0",
       "description": "Default module",
       "author": "hokky",
       "moduleId": "UIElementsTestModule",
