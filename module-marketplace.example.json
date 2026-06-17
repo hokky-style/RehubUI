@@ -17,7 +17,7 @@
       "version": "1.0.0",
       "description": "Default module",
       "author": "hokky",
-      "moduleId": "assetlist",
+      "moduleId": "ModuleListModule",
       "unityPackageUrl": "https://github.com/hokky-style/RehubUI/raw/refs/heads/main/Packages/com.rehub.modules/AssetList.unitypackage",
       "pageUrl": "https://discord.gg/EKNUQDsKSK"
     },
@@ -27,7 +27,7 @@
       "version": "1.0.0",
       "description": "Default module",
       "author": "hokky",
-      "moduleId": "freetext",
+      "moduleId": "FreeTextModule",
       "unityPackageUrl": "https://github.com/hokky-style/RehubUI/raw/refs/heads/main/Packages/com.rehub.modules/FreeText.unitypackage",
       "pageUrl": "https://discord.gg/EKNUQDsKSK"
     },
@@ -37,7 +37,7 @@
       "version": "1.0.0",
       "description": "Default module",
       "author": "hokky",
-      "moduleId": "uitest",
+      "moduleId": "UIElementsTestModule",
       "unityPackageUrl": "https://github.com/hokky-style/RehubUI/raw/refs/heads/main/Packages/com.rehub.modules/UIElementsTestModule.unitypackage",
       "pageUrl": "https://discord.gg/EKNUQDsKSK"
     },
@@ -47,7 +47,7 @@
       "version": "1.0.0",
       "description": "Default module",
       "author": "hokky",
-      "moduleId": "worldchangelog",
+      "moduleId": "WorldChangelogModule",
       "unityPackageUrl": "https://github.com/hokky-style/RehubUI/raw/refs/heads/main/Packages/com.rehub.modules/WorldChangelog.unitypackage",
       "pageUrl": "https://discord.gg/EKNUQDsKSK"
     }

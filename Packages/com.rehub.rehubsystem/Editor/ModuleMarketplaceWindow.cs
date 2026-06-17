@@ -102,19 +102,24 @@ namespace RehubSystem.Editor
                 EditorGUILayout.LabelField(module.id, EditorStyles.miniLabel);
 
                 var installedVersion = GetEmbeddedModuleVersion(module.ModuleId);
+                var installState = GetInstallState(installedVersion, module.version);
                 if (!string.IsNullOrEmpty(installedVersion))
                 {
                     EditorGUILayout.LabelField($"{EditorI18n.GetTranslation("installedVersion")}: v{installedVersion}");
                 }
 
+                EditorGUILayout.LabelField(GetVersionStatusText(installState, installedVersion, module.version), EditorStyles.miniLabel);
+
                 EditorGUILayout.LabelField($"{EditorI18n.GetTranslation("installMode")}: UnityPackage", EditorStyles.miniLabel);
 
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(module.unityPackageUrl) || _isLoading);
-                    var installLabel = string.IsNullOrEmpty(installedVersion)
+                    EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(module.unityPackageUrl) || _isLoading || installState == MarketplaceInstallState.InstalledLatest);
+                    var installLabel = installState == MarketplaceInstallState.NotInstalled
                         ? EditorI18n.GetTranslation("installModule")
-                        : EditorI18n.GetTranslation("updateModule");
+                        : installState == MarketplaceInstallState.UpdateAvailable
+                            ? EditorI18n.GetTranslation("updateModule")
+                            : EditorI18n.GetTranslation("installedLatestVersion");
 
                     if (GUILayout.Button(installLabel))
                     {
@@ -245,6 +250,7 @@ namespace RehubSystem.Editor
         {
             if (string.IsNullOrEmpty(moduleId)) return string.Empty;
 
+            var normalizedTargetId = NormalizeModuleId(moduleId);
             var prefabGuids = AssetDatabase.FindAssets("t:Prefab", new[] { "Packages/com.rehub.rehubsystem/Runtime/Modules" });
             foreach (var guid in prefabGuids)
             {
@@ -253,7 +259,10 @@ namespace RehubSystem.Editor
                 if (prefab == null) continue;
 
                 var metadata = prefab.GetComponent<global::RehubSystem.ModuleMetadata>();
-                if (metadata == null || metadata.ModuleId != moduleId) continue;
+                if (metadata == null) continue;
+
+                var normalizedInstalledId = NormalizeModuleId(metadata.ModuleId);
+                if (metadata.ModuleId != moduleId && normalizedInstalledId != normalizedTargetId) continue;
 
                 return string.IsNullOrEmpty(metadata.moduleVersion) ? "1.0.0" : metadata.moduleVersion;
             }
@@ -272,6 +281,56 @@ namespace RehubSystem.Editor
 
             return value;
         }
+
+        private static MarketplaceInstallState GetInstallState(string installedVersion, string marketplaceVersion)
+        {
+            if (string.IsNullOrEmpty(installedVersion)) return MarketplaceInstallState.NotInstalled;
+
+            if (!Version.TryParse(installedVersion, out var installed))
+            {
+                installed = new Version(1, 0, 0);
+            }
+
+            if (!Version.TryParse(marketplaceVersion, out var latest))
+            {
+                return MarketplaceInstallState.InstalledLatest;
+            }
+
+            return latest > installed ? MarketplaceInstallState.UpdateAvailable : MarketplaceInstallState.InstalledLatest;
+        }
+
+        private static string GetVersionStatusText(MarketplaceInstallState state, string installedVersion, string marketplaceVersion)
+        {
+            switch (state)
+            {
+                case MarketplaceInstallState.NotInstalled:
+                    return EditorI18n.GetTranslation("moduleNotInstalled");
+                case MarketplaceInstallState.UpdateAvailable:
+                    return $"{EditorI18n.GetTranslation("updateAvailable")} (v{installedVersion} -> v{marketplaceVersion})";
+                default:
+                    return $"{EditorI18n.GetTranslation("upToDate")} (v{installedVersion})";
+            }
+        }
+
+        private static string NormalizeModuleId(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return string.Empty;
+
+            var normalized = value.ToLowerInvariant()
+                .Replace(" ", string.Empty)
+                .Replace("-", string.Empty)
+                .Replace("_", string.Empty)
+                .Replace(".", string.Empty);
+
+            return normalized.EndsWith("module") ? normalized.Substring(0, normalized.Length - "module".Length) : normalized;
+        }
+    }
+
+    internal enum MarketplaceInstallState
+    {
+        NotInstalled,
+        InstalledLatest,
+        UpdateAvailable
     }
 
     [Serializable]
