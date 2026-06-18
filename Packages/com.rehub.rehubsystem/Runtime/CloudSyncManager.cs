@@ -87,12 +87,14 @@ namespace RehubSystem
         public void RequestLoad()
         {
             if (!_initializedInternal) return;
+            if (string.IsNullOrEmpty(_apiLoadUrl.Get())) return;
             VRCStringDownloader.LoadUrl(_apiLoadUrl, (IUdonEventReceiver)this);
         }
 
         public void RequestSave(VRCUrl url)
         {
             if (!_initializedInternal) return;
+            if (url == null || string.IsNullOrEmpty(url.Get())) return;
             if (url.Get() != GetSaveUrl()) return;
 
             VRCStringDownloader.LoadUrl(url, (IUdonEventReceiver)this);

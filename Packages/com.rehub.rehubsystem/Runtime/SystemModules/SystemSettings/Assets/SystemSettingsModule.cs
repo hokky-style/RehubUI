@@ -30,16 +30,18 @@ namespace RehubSystem
 
         private void Start()
         {
-            if (_systemI18nManager == null || _languageSelector == null || _qmDesktopKeybindSelector == null || _qmKeybindSelector == null || _qmDominantHandSelector == null || _quickMenuManager == null || _cloudSyncManager == null || _quickMenuSizeText == null)
+            if (_systemI18nManager == null || _quickMenuManager == null || _quickMenuSizeText == null)
             {
-                Debug.LogError("SystemSettingsModule: Missing required components.");
-                return;
+                Debug.LogWarning("SystemSettingsModule: Some optional components are missing.");
             }
 
             ChangeQuickMenuSize(true);
             // ChangeQuickMenuPosition();
 
-            _cloudSyncManager.OnLoad(this, nameof(OnCloudSyncLoaded));
+            if (_cloudSyncManager != null)
+            {
+                _cloudSyncManager.OnLoad(this, nameof(OnCloudSyncLoaded));
+            }
         }
 
         public void OnCloudSyncLoaded()
@@ -64,25 +66,25 @@ namespace RehubSystem
                 ChangeQuickMenuSize(true);
             }
 
-            if (data.ContainsKey("qmkeybind") && data.TryGetValue("qmkeybind", out var keybind))
+            if (_qmKeybindSelector != null && data.ContainsKey("qmkeybind") && data.TryGetValue("qmkeybind", out var keybind))
             {
                 _qmKeybindSelector.SetValue(keybind.String);
                 UpdateQMKeyBind(keybind.String);
             }
 
-            if (data.ContainsKey("qmdesktopkeybind") && data.TryGetValue("qmdesktopkeybind", out var desktopKeybind))
+            if (_qmDesktopKeybindSelector != null && data.ContainsKey("qmdesktopkeybind") && data.TryGetValue("qmdesktopkeybind", out var desktopKeybind))
             {
                 _qmDesktopKeybindSelector.SetValue(desktopKeybind.String);
                 UpdateDesktopQMKeyBind(desktopKeybind.String);
             }
 
-            if (data.ContainsKey("qmdominanthand") && data.TryGetValue("qmdominanthand", out var dominantHand))
+            if (_qmDominantHandSelector != null && data.ContainsKey("qmdominanthand") && data.TryGetValue("qmdominanthand", out var dominantHand))
             {
                 _qmDominantHandSelector.SetValue(dominantHand.String);
                 UpdateQMDominantHand(dominantHand.String);
             }
 
-            if (data.ContainsKey("lang") && data.TryGetValue("lang", out var lang))
+            if (_languageSelector != null && data.ContainsKey("lang") && data.TryGetValue("lang", out var lang))
             {
                 _languageSelector.SetValue(lang.String);
                 _systemI18nManager.SetLanguage(lang.String);
@@ -96,14 +98,14 @@ namespace RehubSystem
 
             var language = _languageSelector.Value;
             _systemI18nManager.SetLanguage(language);
-            _cloudSyncManager.Save("lang", language);
+            if (_cloudSyncManager != null) _cloudSyncManager.Save("lang", language);
         }
 
         public void UpdateDesktopQMKeyBind()
         {
             if (_qmDesktopKeybindSelector == null) return;
             UpdateDesktopQMKeyBind(_qmDesktopKeybindSelector.Value);
-            _cloudSyncManager.Save("qmdesktopkeybind", _qmDesktopKeybindSelector.Value);
+            if (_cloudSyncManager != null) _cloudSyncManager.Save("qmdesktopkeybind", _qmDesktopKeybindSelector.Value);
         }
 
         public void UpdateDesktopQMKeyBind(string value)
@@ -128,7 +130,7 @@ namespace RehubSystem
             if (_quickMenuManager == null) return;
             if (_qmKeybindSelector == null) return;
             UpdateQMKeyBind(_qmKeybindSelector.Value);
-            _cloudSyncManager.Save("qmkeybind", _qmKeybindSelector.Value);
+            if (_cloudSyncManager != null) _cloudSyncManager.Save("qmkeybind", _qmKeybindSelector.Value);
         }
 
         // VR用 後方互換性のためにメソッド名は変更なし
@@ -156,7 +158,7 @@ namespace RehubSystem
             if (_quickMenuManager == null) return;
             if (_qmDominantHandSelector == null) return;
             UpdateQMDominantHand(_qmDominantHandSelector.Value);
-            _cloudSyncManager.Save("qmdominanthand", _qmDominantHandSelector.Value);
+            if (_cloudSyncManager != null) _cloudSyncManager.Save("qmdominanthand", _qmDominantHandSelector.Value);
 
             var dominantHand = _quickMenuManager.DominantHand == VRQuickMenuDominantHand.Left ? "left" : "right";
             var nonDominantHand = _quickMenuManager.DominantHand == VRQuickMenuDominantHand.Left ? "right" : "left";
@@ -166,8 +168,10 @@ namespace RehubSystem
             argValues[1] = dominantHand;
             argValues[2] = nonDominantHand;
             argValues[3] = dominantHand;
-            _qmKeybindNoticeText.argValues = argValues;
-            _qmKeybindNoticeText.Apply();
+            if (_qmKeybindNoticeText != null)
+            {
+                _qmKeybindNoticeText.argValues = argValues;
+            }
         }
 
         public void UpdateQMDominantHand(string value)
@@ -241,7 +245,7 @@ namespace RehubSystem
 
             _quickMenuManager.SetMenuSize(_quickMenuSize);
             _quickMenuSizeText.text = _quickMenuSize.ToString("P0");
-            if (!skipSave) _cloudSyncManager.Save("qmsize", _quickMenuSize);
+            if (!skipSave && _cloudSyncManager != null) _cloudSyncManager.Save("qmsize", _quickMenuSize);
         }
 
         public void ChangeQuickMenuPosition()
