@@ -47,6 +47,7 @@ namespace RehubSystem
         private const string InstanceOwnerStatusName = "InstanceOwner";
         private const string VerifiedUserStatusName = "VerifiedUser";
         private const string WorldLicensedStatusName = "WorldLicensed";
+        private const string CloudSyncStatusName = "CloudSyncStatus";
 
         private ModuleMetadata _currentModule;
         private ModuleMetadata _nextModule;
@@ -632,15 +633,19 @@ namespace RehubSystem
             var instanceOwnerStatus = FindChildGameObject(_panel, InstanceOwnerStatusName);
             var verifiedUserStatus = FindChildGameObject(_panel, VerifiedUserStatusName);
             var worldLicensedStatus = FindChildGameObject(_panel, WorldLicensedStatusName);
+            var cloudSyncStatus = FindChildGameObject(_panel, CloudSyncStatusName);
 
             var isInstanceOwner = Networking.LocalPlayer != null && Networking.LocalPlayer.isInstanceOwner;
+            var isInstanceMaster = Networking.LocalPlayer != null && Networking.LocalPlayer.isMaster;
             SetHeaderStatus(instanceOwnerStatus, FindStatusTheme(instanceOwnerStatus), isInstanceOwner ? ColorPalette.Success : ColorPalette.Error);
 
             SetHeaderStatus(verifiedUserStatus, FindStatusTheme(verifiedUserStatus), verified ? ColorPalette.Success : ColorPalette.Error);
 
+            SetHeaderStatus(worldLicensedStatus, FindStatusTheme(worldLicensedStatus), isInstanceMaster ? ColorPalette.Success : ColorPalette.Error);
+
             var cloudSyncManager = GetCloudSyncManager();
             var cloudReady = cloudSyncManager != null && cloudSyncManager.Initialized;
-            SetHeaderStatus(worldLicensedStatus, FindStatusTheme(worldLicensedStatus), cloudReady ? ColorPalette.Success : ColorPalette.Error);
+            SetHeaderStatus(cloudSyncStatus, FindStatusTheme(cloudSyncStatus), cloudReady ? ColorPalette.Success : ColorPalette.Error);
         }
 
         private void SetHeaderStatus(GameObject statusObject, ApplyTheme theme, ColorPalette palette)
