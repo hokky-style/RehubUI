@@ -11,8 +11,9 @@ namespace RehubSystem.Editor
 
         public static List<ModuleMetadata> SyncInstalledModulesToScene(Transform moduleContainer)
         {
-            var modules = GetSceneModules(moduleContainer);
-            if (moduleContainer == null) return modules;
+            if (moduleContainer == null) return new List<ModuleMetadata>();
+
+            var modules = RemoveDuplicatedSceneModules(moduleContainer);
 
             foreach (var prefab in GetInstalledModulePrefabs())
             {
@@ -21,8 +22,9 @@ namespace RehubSystem.Editor
                 var prefabMetadata = prefab.GetComponent<ModuleMetadata>();
                 if (prefabMetadata == null || string.IsNullOrEmpty(prefabMetadata.ModuleId)) continue;
 
-                var alreadyExists = modules.Any(module => module != null && module.ModuleId == prefabMetadata.ModuleId);
-                if (alreadyExists && prefabMetadata.IsUnique) continue;
+                var normalizedPrefabId = NormalizeModuleId(prefabMetadata.ModuleId);
+                var alreadyExists = modules.Any(module => module != null && NormalizeModuleId(module.ModuleId) == normalizedPrefabId);
+                if (alreadyExists) continue;
 
                 var instance = PrefabUtility.InstantiatePrefab(prefab, moduleContainer) as GameObject;
                 if (instance == null) continue;
@@ -31,6 +33,7 @@ namespace RehubSystem.Editor
                 if (metadata == null) continue;
 
                 ConfigureModuleInstance(instance, moduleContainer);
+                Undo.RegisterCreatedObjectUndo(instance, "Sync Rehub Module");
                 modules.Add(metadata);
             }
 
@@ -40,7 +43,48 @@ namespace RehubSystem.Editor
         public static List<ModuleMetadata> GetSceneModules(Transform moduleContainer)
         {
             if (moduleContainer == null) return new List<ModuleMetadata>();
-            return moduleContainer.GetComponentsInChildren<ModuleMetadata>(true).ToList();
+
+            var modules = new List<ModuleMetadata>();
+            for (int i = 0; i < moduleContainer.childCount; i++)
+            {
+                var child = moduleContainer.GetChild(i);
+                if (child == null) continue;
+
+                var metadata = child.GetComponent<ModuleMetadata>();
+                if (metadata != null) modules.Add(metadata);
+            }
+
+            return modules;
+        }
+
+        private static List<ModuleMetadata> RemoveDuplicatedSceneModules(Transform moduleContainer)
+        {
+            var modules = GetSceneModules(moduleContainer);
+            var usedModuleIds = new HashSet<string>();
+            var result = new List<ModuleMetadata>();
+
+            foreach (var module in modules.OrderBy(module => module.transform.GetSiblingIndex()))
+            {
+                if (module == null) continue;
+
+                var normalizedId = NormalizeModuleId(module.ModuleId);
+                if (string.IsNullOrEmpty(normalizedId))
+                {
+                    result.Add(module);
+                    continue;
+                }
+
+                if (usedModuleIds.Contains(normalizedId))
+                {
+                    Undo.DestroyObjectImmediate(module.gameObject);
+                    continue;
+                }
+
+                usedModuleIds.Add(normalizedId);
+                result.Add(module);
+            }
+
+            return result;
         }
 
         public static void ConfigureModuleInstance(GameObject moduleObject, Transform moduleContainer)

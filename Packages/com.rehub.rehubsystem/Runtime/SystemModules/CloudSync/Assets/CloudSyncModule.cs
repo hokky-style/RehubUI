@@ -22,8 +22,6 @@ namespace RehubSystem
         [SerializeField] private Text _masterStatusText;
         [SerializeField] private Text _ownerStatusText;
         [SerializeField] private Text _verifiedStatusText;
-        private VRCUrl _emptyUrl = new VRCUrl("");
-
         private void Start()
         {
             if (_uiManager == null)
@@ -43,7 +41,7 @@ namespace RehubSystem
 
         public void RefreshStatus()
         {
-            var hasSynced = _cloudSyncManager != null && _cloudSyncManager.LastState == "success" && _cloudSyncManager.LastSaveTime != DateTimeOffset.MinValue;
+            var hasSynced = _cloudSyncManager != null && _cloudSyncManager.Initialized;
             SetStatusText(_syncStatusText, "Synchronization", hasSynced);
             SetStatusText(_masterStatusText, "Instance master", Networking.LocalPlayer != null && Networking.LocalPlayer.isMaster);
             SetStatusText(_ownerStatusText, "Instance owner", Networking.LocalPlayer != null && Networking.LocalPlayer.isInstanceOwner);
@@ -52,20 +50,12 @@ namespace RehubSystem
 
         public void OnModuleCalled()
         {
-            if (_cloudSyncManager != null && _saveUrlCopyField != null)
-            {
-                _saveUrlCopyField.text = _cloudSyncManager.GetSaveUrl();
-            }
-
             RefreshStatus();
         }
 
         public void OnSaveRequested()
         {
-            if (_cloudSyncManager == null || _saveUrlPasteField == null) return;
-
-            _cloudSyncManager.RequestSave(_saveUrlPasteField.GetUrl());
-            _saveUrlPasteField.SetUrl(_emptyUrl);
+            RefreshStatus();
         }
 
         private void ResolveStatusTexts()

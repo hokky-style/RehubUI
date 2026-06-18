@@ -53,29 +53,29 @@ namespace RehubSystem
         private const string VerifiedUserStatusName = "VerifiedUser";
         private const string WorldLicensedStatusName = "WorldLicensed";
 
-        private ModuleMetadata _currentModule;
-        private ModuleMetadata _nextModule;
-        private ModuleMetadata[] _navigationButtonModules = new ModuleMetadata[0];
-        private GameObject[] _navigationButtonObjects = new GameObject[0];
-        private GameObject _homeNavigationButton;
-        private GameObject _systemSettingsNavigationButton;
-        private GameObject _instanceOwnerStatus;
-        private GameObject _verifiedUserStatus;
-        private GameObject _worldLicensedStatus;
-        private ApplyTheme _instanceOwnerStatusTheme;
-        private ApplyTheme _verifiedUserStatusTheme;
-        private ApplyTheme _worldLicensedStatusTheme;
-        private string _verifiedUsersRawList = "";
-        private bool _verifiedUsersLoaded = false;
-        private bool _localPlayerVerified = false;
-        private bool _versionListingLoaded = false;
-        private bool _versionUpdateAvailable = false;
-        private string _latestSystemVersion = "";
-        private bool _worldLicensed = false;
+        [NonSerialized] private ModuleMetadata _currentModule;
+        [NonSerialized] private ModuleMetadata _nextModule;
+        [NonSerialized] private ModuleMetadata[] _navigationButtonModules = new ModuleMetadata[0];
+        [NonSerialized] private GameObject[] _navigationButtonObjects = new GameObject[0];
+        [NonSerialized] private GameObject _homeNavigationButton;
+        [NonSerialized] private GameObject _systemSettingsNavigationButton;
+        [NonSerialized] private GameObject _instanceOwnerStatus;
+        [NonSerialized] private GameObject _verifiedUserStatus;
+        [NonSerialized] private GameObject _worldLicensedStatus;
+        [NonSerialized] private ApplyTheme _instanceOwnerStatusTheme;
+        [NonSerialized] private ApplyTheme _verifiedUserStatusTheme;
+        [NonSerialized] private ApplyTheme _worldLicensedStatusTheme;
+        [NonSerialized] private string _verifiedUsersRawList = "";
+        [NonSerialized] private bool _verifiedUsersLoaded = false;
+        [NonSerialized] private bool _localPlayerVerified = false;
+        [NonSerialized] private bool _versionListingLoaded = false;
+        [NonSerialized] private bool _versionUpdateAvailable = false;
+        [NonSerialized] private string _latestSystemVersion = "";
+        [NonSerialized] private bool _worldLicensed = false;
 
-        private bool _titleTemplateASide = false;
-        private Animator _titleTemplateAAnimator;
-        private Animator _titleTemplateBAnimator;
+        [NonSerialized] private bool _titleTemplateASide = false;
+        [NonSerialized] private Animator _titleTemplateAAnimator;
+        [NonSerialized] private Animator _titleTemplateBAnimator;
 
         public GameObject[] Canvas
         {
@@ -996,7 +996,7 @@ namespace RehubSystem
         {
             InitializeCloudSyncManager();
 
-            var synchronized = _cloudSyncManager != null && _cloudSyncManager.LastState == "success" && _cloudSyncManager.LastSaveTime != DateTimeOffset.MinValue;
+            var synchronized = _cloudSyncManager != null && _cloudSyncManager.Initialized;
             var isInstanceMaster = Networking.LocalPlayer != null && Networking.LocalPlayer.isMaster;
             var isInstanceOwner = Networking.LocalPlayer != null && Networking.LocalPlayer.isInstanceOwner;
             var verifiedStatus = _verifiedUsersLoaded && _localPlayerVerified;

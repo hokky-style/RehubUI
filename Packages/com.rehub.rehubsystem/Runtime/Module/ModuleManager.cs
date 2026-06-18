@@ -10,9 +10,9 @@ namespace RehubSystem
     {
         [SerializeField] private Transform _modulesRoot;
         [SerializeField] private ModuleMetadata[] _systemModules;
-        private ModuleMetadata[] _modules = new ModuleMetadata[0];
-        private DataList _availableModules = new DataList();
-        private bool _isInitialized = false;
+        [System.NonSerialized] private ModuleMetadata[] _modules = new ModuleMetadata[0];
+        [System.NonSerialized] private DataList _availableModules = new DataList();
+        [System.NonSerialized] private bool _isInitialized = false;
 
         public Transform ModulesRoot => _modulesRoot;
         public ModuleMetadata[] Modules => _modules;

@@ -12769,20 +12769,9 @@ MonoBehaviour:
     SerializedBytesString: 
     Prefab: {fileID: 0}
     PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
+  PrefabModifications: []
+  SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 1278411643608383149}
-  _apiBaseUrl: 
-  _apiSchemaRev: 1
-  _apiLoadUrl:
-    url: /load?rev=1
-  _syncStatus: {fileID: 5606700146149658648}
-  _syncStatusUnknownIcon: {fileID: 21300000, guid: d4492c6b6d083b64fa733bba6db07167,
-    type: 3}
-  _syncStatusSuccessIcon: {fileID: 21300000, guid: 1d5ca33edce3b8449877f76891aac933,
-    type: 3}
-  _syncStatusErrorIcon: {fileID: 21300000, guid: bbd8a04043ff1e44191234649998231e,
-    type: 3}
 --- !u!114 &1278411643608383149
 MonoBehaviour:
   m_ObjectHideFlags: 0
