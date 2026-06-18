@@ -42,6 +42,15 @@ namespace RehubSystem
         public string LastSaveTime => _lastSaveTime == DateTimeOffset.MinValue ? "" : _lastSaveTime.ToString("o");
         public bool UsingPersistenceData => _usingPersistenceData;
         public bool HasSavedData => _usingPersistenceData;
+        public VRCUrl GetVerifiedUsersUrl()
+        {
+            return _apiLoadUrl;
+        }
+
+        public string GetVerifiedUsersUrlString()
+        {
+            return _apiLoadUrl == null ? "" : _apiLoadUrl.Get();
+        }
 
         private void Start()
         {

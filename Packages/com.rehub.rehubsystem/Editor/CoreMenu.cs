@@ -17,6 +17,7 @@ namespace RehubSystem.Editor
         private ThemePreset[] _themes;
         private SerializedObject _themeManagerSerializedObject;
         private SerializedObject _uiManagerSerializedObject;
+        private SerializedObject _cloudSyncManagerSerializedObject;
         private SerializedObject _quickMenuManagerSerializedObject;
         private List<string> _usedUniqueModuleIds;
         private List<string> _duplicatedUniqueModuleIds;
@@ -82,6 +83,12 @@ namespace RehubSystem.Editor
             if (uiManager != null)
             {
                 _uiManagerSerializedObject = new SerializedObject(uiManager);
+            }
+
+            var cloudSyncManager = gameObject.GetComponentInChildren<CloudSyncManager>(true);
+            if (cloudSyncManager != null)
+            {
+                _cloudSyncManagerSerializedObject = new SerializedObject(cloudSyncManager);
             }
 
             var quickMenuManager = gameObject.GetComponentInChildren<QuickMenuManager>(true);
@@ -537,18 +544,18 @@ namespace RehubSystem.Editor
 
             UIStyles.TitleBox(EditorI18n.GetTranslation("links"));
 
-            if (_uiManagerSerializedObject != null)
+            if (_cloudSyncManagerSerializedObject != null)
             {
-                _uiManagerSerializedObject.Update();
+                _cloudSyncManagerSerializedObject.Update();
 
-                var verifiedUsersUrl = _uiManagerSerializedObject.FindProperty("_verifiedUsersUrl");
+                var verifiedUsersUrl = _cloudSyncManagerSerializedObject.FindProperty("_apiLoadUrl");
                 if (verifiedUsersUrl != null)
                 {
                     EditorGUILayout.PropertyField(verifiedUsersUrl, new GUIContent(EditorI18n.GetTranslation("verifiedUsersUrl")));
                     EditorGUILayout.HelpBox(EditorI18n.GetTranslation("verifiedUsersUrlDescription"), MessageType.Info);
                 }
 
-                _uiManagerSerializedObject.ApplyModifiedProperties();
+                _cloudSyncManagerSerializedObject.ApplyModifiedProperties();
             }
 
             UIStyles.TitleBox(EditorI18n.GetTranslation("otherSettings"));

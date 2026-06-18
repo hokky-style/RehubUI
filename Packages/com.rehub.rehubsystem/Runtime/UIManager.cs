@@ -41,7 +41,6 @@ namespace RehubSystem
         private const int DockSlotCount = 5;
         private const int PinnedNavigationButtonCount = DockSlotCount - 2;
         private const string PackageName = "com.rehub.rehubsystem";
-        private const string VerifiedUsersUrl = "https://raw.githubusercontent.com/hokky-style/RehubUI/main/verified-users.example.json";
         private const string VersionListingUrl = "https://raw.githubusercontent.com/hokky-style/RehubUI/main/version-listing.example.json";
         private const string HomeNavigationButtonName = "__home";
         private const string SystemSettingsModuleId = "SystemSettingsModule";
@@ -85,7 +84,7 @@ namespace RehubSystem
         }
 
         public ThemeManager ThemeManager => _themeManager;
-        public bool LocalPlayerVerified => false;
+        public bool LocalPlayerVerified => IsHeaderStatusSuccess(VerifiedUserStatusName);
         public bool VersionListingLoaded => false;
         public bool VersionUpdateAvailable => false;
         public string LatestSystemVersion => "";
@@ -303,7 +302,8 @@ namespace RehubSystem
 
         public bool IsPlayerVerified(string playerName)
         {
-            return false;
+            if (Networking.LocalPlayer == null || string.IsNullOrEmpty(playerName)) return false;
+            return playerName == Networking.LocalPlayer.displayName && LocalPlayerVerified;
         }
 
         public bool IsWorldLicensed()
@@ -323,7 +323,14 @@ namespace RehubSystem
 
         public void RequestVerifiedUsers()
         {
-            UpdateHeaderStatusIndicators();
+            var cloudSyncManager = GetCloudSyncManager();
+            if (cloudSyncManager == null || string.IsNullOrEmpty(cloudSyncManager.GetVerifiedUsersUrlString()))
+            {
+                UpdateHeaderStatusIndicators();
+                return;
+            }
+
+            VRCStringDownloader.LoadUrl(cloudSyncManager.GetVerifiedUsersUrl(), (IUdonEventReceiver)this);
         }
 
         public void RequestVersionListing()
@@ -333,7 +340,8 @@ namespace RehubSystem
 
         public override void OnStringLoadSuccess(IVRCStringDownload result)
         {
-            if (IsUrlString(result.Url, VerifiedUsersUrl))
+            var cloudSyncManager = GetCloudSyncManager();
+            if (cloudSyncManager != null && IsUrlString(result.Url, cloudSyncManager.GetVerifiedUsersUrlString()))
             {
                 var verified = Networking.LocalPlayer != null && IsNameInRemoteList(result.Result, Networking.LocalPlayer.displayName);
                 UpdateHeaderStatusIndicators(verified);
@@ -351,7 +359,8 @@ namespace RehubSystem
 
         public override void OnStringLoadError(IVRCStringDownload result)
         {
-            if (IsUrlString(result.Url, VerifiedUsersUrl))
+            var cloudSyncManager = GetCloudSyncManager();
+            if (cloudSyncManager != null && IsUrlString(result.Url, cloudSyncManager.GetVerifiedUsersUrlString()))
             {
                 Debug.LogWarning($"[UIManager] Failed to load verified users list: {result.ErrorCode} - {result.Error}");
                 UpdateHeaderStatusIndicators();
@@ -606,6 +615,13 @@ namespace RehubSystem
             return null;
         }
 
+        private bool IsHeaderStatusSuccess(string statusName)
+        {
+            var statusObject = FindChildGameObject(_panel, statusName);
+            var theme = FindStatusTheme(statusObject);
+            return theme != null && theme.colorPalette == ColorPalette.Success;
+        }
+
         private void UpdateHeaderStatusIndicators()
         {
             UpdateHeaderStatusIndicators(false);
@@ -622,8 +638,9 @@ namespace RehubSystem
 
             SetHeaderStatus(verifiedUserStatus, FindStatusTheme(verifiedUserStatus), verified ? ColorPalette.Success : ColorPalette.Error);
 
-            var isInstanceMaster = Networking.LocalPlayer != null && Networking.LocalPlayer.isMaster;
-            SetHeaderStatus(worldLicensedStatus, FindStatusTheme(worldLicensedStatus), isInstanceMaster ? ColorPalette.Success : ColorPalette.Error);
+            var cloudSyncManager = GetCloudSyncManager();
+            var cloudReady = cloudSyncManager != null && cloudSyncManager.Initialized;
+            SetHeaderStatus(worldLicensedStatus, FindStatusTheme(worldLicensedStatus), cloudReady ? ColorPalette.Success : ColorPalette.Error);
         }
 
         private void SetHeaderStatus(GameObject statusObject, ApplyTheme theme, ColorPalette palette)
