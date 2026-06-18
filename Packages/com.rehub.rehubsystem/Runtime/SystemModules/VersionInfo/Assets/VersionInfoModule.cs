@@ -12,44 +12,24 @@ namespace RehubSystem
     {
         public string version = "0.0.0";
         [SerializeField] private Text _versionText;
-        [SerializeField] private Text _statusText;
-        [SerializeField] private UIManager _uiManager;
 
         private void Start()
         {
-            if (_uiManager == null)
-            {
-                _uiManager = GetComponentInParent<UIManager>();
-            }
-
-            if (_statusText == null)
-            {
-                _statusText = FindStatusText();
-            }
-
             RefreshVersionStatus();
         }
 
         public void RefreshVersionStatus()
         {
-            if (_uiManager == null)
-            {
-                _uiManager = GetComponentInParent<UIManager>();
-            }
-
-            if (_statusText == null)
-            {
-                _statusText = FindStatusText();
-            }
-
             if (_versionText != null)
             {
                 _versionText.text = $"Version {version}";
             }
 
-            if (_statusText == null) return;
-
-            _statusText.text = "Rehub System";
+            var statusText = FindStatusText();
+            if (statusText != null)
+            {
+                statusText.text = "Rehub System";
+            }
         }
 
         private Text FindStatusText()
@@ -77,7 +57,7 @@ namespace RehubSystem
     public class VersionInfoModuleInspector : ModuleInspector
     {
         protected override string I18nUUID => "4808d31699fba654f86b406d56d0e5c7";
-        protected override string[] ObjectProperties => new string[] { "version", "_versionText", "_statusText", "_uiManager" };
+        protected override string[] ObjectProperties => new string[] { "version", "_versionText" };
 
         protected override void DrawModuleInspector()
         {

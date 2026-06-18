@@ -30,10 +30,8 @@ namespace RehubSystem
         private DataDictionary _data = new DataDictionary();
         private bool _initializedInternal = false;
         private bool _usingPersistenceData = false;
-        private bool _hasSavedData = false;
         private string _lastState = "unknown";
         private DateTimeOffset _lastSaveTime = DateTimeOffset.MinValue;
-        private string _lastSaveTimeIso = "";
         private UdonSharpBehaviour[] _onLoadCallbackBehaviours = new UdonSharpBehaviour[0];
         private string[] _onLoadCallbackMethods = new string[0];
         private DataDictionary _saveQueue = new DataDictionary();
@@ -41,9 +39,9 @@ namespace RehubSystem
         public bool Initialized => _initializedInternal;
         public DataDictionary SyncData => _data;
         public string LastState => _lastState;
-        public string LastSaveTime => _lastSaveTimeIso;
+        public string LastSaveTime => _lastSaveTime == DateTimeOffset.MinValue ? "" : _lastSaveTime.ToString("o");
         public bool UsingPersistenceData => _usingPersistenceData;
-        public bool HasSavedData => _hasSavedData;
+        public bool HasSavedData => _usingPersistenceData;
 
         private void Start()
         {
@@ -73,9 +71,7 @@ namespace RehubSystem
             {
                 var root = data.DataDictionary;
                 _data = root.TryGetValue("config", out var config) ? config.DataDictionary : new DataDictionary();
-                _lastSaveTimeIso = root.TryGetValue("updatedAt", out var updatedAt) ? updatedAt.String : "";
                 _usingPersistenceData = true;
-                _hasSavedData = !string.IsNullOrEmpty(_lastSaveTimeIso);
                 _lastState = "success";
                 NotifyLoadCallbacks();
             }
@@ -87,14 +83,12 @@ namespace RehubSystem
 
             _data.SetValue(key, value);
             _lastSaveTime = DateTimeOffset.Now;
-            _lastSaveTimeIso = _lastSaveTime.ToString("o");
             _usingPersistenceData = true;
-            _hasSavedData = true;
             _lastState = "success";
 
             var root = new DataDictionary();
             root.SetValue("config", _data);
-            root.SetValue("updatedAt", _lastSaveTimeIso);
+            root.SetValue("updatedAt", LastSaveTime);
 
             if (VRCJson.TrySerializeToJson(root, JsonExportType.Minify, out var result))
             {

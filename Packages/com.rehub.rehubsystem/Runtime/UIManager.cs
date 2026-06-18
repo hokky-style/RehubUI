@@ -35,17 +35,13 @@ namespace RehubSystem
         [SerializeField] private GameObject _navigationButtonTemplate;
         [SerializeField] private Transform _navigationButtonContainer;
         [SerializeField] private Sprite _homeNavigationIcon;
-        [SerializeField] private Sprite _masterPermissionIcon;
         [SerializeField] private GameObject _modalWindowTemplate;
         [SerializeField] private Transform _modalWindowContainer;
-        [SerializeField] private CloudSyncManager _cloudSyncManager;
-        [SerializeField] private VRCUrl _verifiedUsersUrl = new VRCUrl("");
-        [SerializeField, HideInInspector] private VRCUrl _versionListingUrl = new VRCUrl(VersionListingUrl);
-        [SerializeField] private string _currentSystemVersion = "1.0.0";
 
         private const int DockSlotCount = 5;
         private const int PinnedNavigationButtonCount = DockSlotCount - 2;
         private const string PackageName = "com.rehub.rehubsystem";
+        private const string VerifiedUsersUrl = "https://raw.githubusercontent.com/hokky-style/RehubUI/main/verified-users.example.json";
         private const string VersionListingUrl = "https://raw.githubusercontent.com/hokky-style/RehubUI/main/version-listing.example.json";
         private const string HomeNavigationButtonName = "__home";
         private const string SystemSettingsModuleId = "SystemSettingsModule";
@@ -59,19 +55,6 @@ namespace RehubSystem
         private GameObject[] _navigationButtonObjects = new GameObject[0];
         private GameObject _homeNavigationButton;
         private GameObject _systemSettingsNavigationButton;
-        private GameObject _instanceOwnerStatus;
-        private GameObject _verifiedUserStatus;
-        private GameObject _worldLicensedStatus;
-        private ApplyTheme _instanceOwnerStatusTheme;
-        private ApplyTheme _verifiedUserStatusTheme;
-        private ApplyTheme _worldLicensedStatusTheme;
-        private string _verifiedUsersRawList = "";
-        private bool _verifiedUsersLoaded = false;
-        private bool _localPlayerVerified = false;
-        private bool _versionListingLoaded = false;
-        private bool _versionUpdateAvailable = false;
-        private string _latestSystemVersion = "";
-        private bool _worldLicensed = false;
 
         private bool _titleTemplateASide = false;
         private Animator _titleTemplateAAnimator;
@@ -102,11 +85,11 @@ namespace RehubSystem
         }
 
         public ThemeManager ThemeManager => _themeManager;
-        public bool LocalPlayerVerified => _localPlayerVerified;
-        public bool VersionListingLoaded => _versionListingLoaded;
-        public bool VersionUpdateAvailable => _versionUpdateAvailable;
-        public string LatestSystemVersion => _latestSystemVersion;
-        public bool WorldLicensed => _worldLicensed;
+        public bool LocalPlayerVerified => false;
+        public bool VersionListingLoaded => false;
+        public bool VersionUpdateAvailable => false;
+        public string LatestSystemVersion => "";
+        public bool WorldLicensed => Networking.LocalPlayer != null && Networking.LocalPlayer.isMaster;
 
         private void Start()
         {
@@ -177,7 +160,6 @@ namespace RehubSystem
                     if (module.instanceMasterOnly)
                     {
                         var masterIcon = link.permissionIconMaster != null ? link.permissionIconMaster : link.permissionIconAllowedUser;
-                        ApplyPermissionIconSprite(masterIcon, _masterPermissionIcon);
                         SetPermissionIconActive(masterIcon);
                     }
 
@@ -220,7 +202,6 @@ namespace RehubSystem
             _themeManager.ApplyTheme();
             _i18nManager.ApplyI18n();
             InitializeHeaderStatusIndicators();
-            InitializeCloudSyncManager();
             RequestVerifiedUsers();
             RequestVersionListing();
             UpdateHeaderStatusIndicators();
@@ -253,17 +234,6 @@ namespace RehubSystem
             if (permissionIcon != null)
             {
                 permissionIcon.SetActive(true);
-            }
-        }
-
-        private void ApplyPermissionIconSprite(GameObject permissionIcon, Sprite sprite)
-        {
-            if (permissionIcon == null || sprite == null) return;
-
-            var image = permissionIcon.GetComponent<Image>();
-            if (image != null)
-            {
-                image.sprite = sprite;
             }
         }
 
@@ -328,112 +298,71 @@ namespace RehubSystem
 
         public bool IsLocalPlayerVerified()
         {
-            return _localPlayerVerified;
+            return LocalPlayerVerified;
         }
 
         public bool IsPlayerVerified(string playerName)
         {
-            return IsNameInRemoteList(playerName);
+            return false;
         }
 
         public bool IsWorldLicensed()
         {
-            return _versionListingLoaded;
+            return WorldLicensed;
         }
 
         public bool HasVersionUpdate()
         {
-            return _versionUpdateAvailable;
+            return VersionUpdateAvailable;
         }
 
         public void RefreshHeaderStatusIndicators()
         {
-            if (_instanceOwnerStatus == null && _verifiedUserStatus == null && _worldLicensedStatus == null)
-            {
-                InitializeHeaderStatusIndicators();
-            }
-
-            _localPlayerVerified = Networking.LocalPlayer != null && IsNameInRemoteList(Networking.LocalPlayer.displayName);
             UpdateHeaderStatusIndicators();
         }
 
         public void RequestVerifiedUsers()
         {
-            if (string.IsNullOrEmpty(_verifiedUsersUrl.Get()))
-            {
-                _verifiedUsersLoaded = false;
-                _localPlayerVerified = false;
-                UpdateHeaderStatusIndicators();
-                return;
-            }
-
-            VRCStringDownloader.LoadUrl(_verifiedUsersUrl, (IUdonEventReceiver)this);
+            UpdateHeaderStatusIndicators();
         }
 
         public void RequestVersionListing()
         {
-            if (string.IsNullOrEmpty(_versionListingUrl.Get()))
-            {
-                Debug.LogWarning("[UIManager] Version listing URL is empty.");
-                _versionListingLoaded = false;
-                _versionUpdateAvailable = false;
-                _latestSystemVersion = "";
-                _worldLicensed = false;
-                UpdateHeaderStatusIndicators();
-                return;
-            }
-
-            VRCStringDownloader.LoadUrl(_versionListingUrl, (IUdonEventReceiver)this);
+            UpdateHeaderStatusIndicators();
         }
 
         public override void OnStringLoadSuccess(IVRCStringDownload result)
         {
-            if (IsSameUrl(result.Url, _verifiedUsersUrl))
+            if (IsUrlString(result.Url, VerifiedUsersUrl))
             {
-                _verifiedUsersRawList = result.Result;
-                _verifiedUsersLoaded = true;
-                RefreshHeaderStatusIndicators();
-                Debug.Log($"[UIManager] Verified users list loaded. Local player verified: {_localPlayerVerified}");
+                var verified = Networking.LocalPlayer != null && IsNameInRemoteList(result.Result, Networking.LocalPlayer.displayName);
+                UpdateHeaderStatusIndicators(verified);
+                Debug.Log($"[UIManager] Verified users list loaded. Local player verified: {verified}");
                 return;
             }
 
-            if (IsSameUrl(result.Url, _versionListingUrl) || IsUrlString(result.Url, VersionListingUrl))
+            if (IsUrlString(result.Url, VersionListingUrl))
             {
-                _versionListingLoaded = TryReadLatestSystemVersion(result.Result, out _latestSystemVersion);
-                _versionUpdateAvailable = _versionListingLoaded && CompareVersions(_latestSystemVersion, _currentSystemVersion) > 0;
-                _worldLicensed = _versionListingLoaded;
+                var versionListingLoaded = TryReadLatestSystemVersion(result.Result, out var latestSystemVersion);
                 UpdateHeaderStatusIndicators();
-                Debug.Log($"[UIManager] Version listing loaded. Current: {_currentSystemVersion}, latest: {_latestSystemVersion}, update available: {_versionUpdateAvailable}");
+                Debug.Log($"[UIManager] Version listing loaded: {versionListingLoaded}, latest: {latestSystemVersion}");
             }
         }
 
         public override void OnStringLoadError(IVRCStringDownload result)
         {
-            if (IsSameUrl(result.Url, _verifiedUsersUrl))
+            if (IsUrlString(result.Url, VerifiedUsersUrl))
             {
                 Debug.LogWarning($"[UIManager] Failed to load verified users list: {result.ErrorCode} - {result.Error}");
-                _verifiedUsersRawList = "";
-                _verifiedUsersLoaded = false;
-                _localPlayerVerified = false;
                 UpdateHeaderStatusIndicators();
                 return;
             }
 
-            if (IsSameUrl(result.Url, _versionListingUrl) || IsUrlString(result.Url, VersionListingUrl))
+            if (IsUrlString(result.Url, VersionListingUrl))
             {
                 Debug.LogWarning($"[UIManager] Failed to load version listing: {result.ErrorCode} - {result.Error}");
-                _versionListingLoaded = false;
-                _versionUpdateAvailable = false;
-                _latestSystemVersion = "";
-                _worldLicensed = false;
                 UpdateHeaderStatusIndicators();
             }
-        }
-
-        private bool IsSameUrl(VRCUrl left, VRCUrl right)
-        {
-            if (left == null || right == null) return false;
-            return left.Get() == right.Get();
         }
 
         private bool IsUrlString(VRCUrl url, string value)
@@ -635,24 +564,14 @@ namespace RehubSystem
 
         private void InitializeHeaderStatusIndicators()
         {
-            _instanceOwnerStatus = FindChildGameObject(_panel, InstanceOwnerStatusName);
-            _verifiedUserStatus = FindChildGameObject(_panel, VerifiedUserStatusName);
-            _worldLicensedStatus = FindChildGameObject(_panel, WorldLicensedStatusName);
-
-            _instanceOwnerStatusTheme = FindStatusTheme(_instanceOwnerStatus);
-            _verifiedUserStatusTheme = FindStatusTheme(_verifiedUserStatus);
-            _worldLicensedStatusTheme = FindStatusTheme(_worldLicensedStatus);
+            UpdateHeaderStatusIndicators();
         }
 
-        private void InitializeCloudSyncManager()
+        private CloudSyncManager GetCloudSyncManager()
         {
-            if (_cloudSyncManager != null) return;
-
-            var cloudSyncObject = FindChildGameObject(transform, "CloudSyncManager");
-            if (cloudSyncObject != null)
-            {
-                _cloudSyncManager = cloudSyncObject.GetComponent<CloudSyncManager>();
-            }
+            var root = _rootCanvas != null ? _rootCanvas.root : transform.root;
+            var cloudSyncObject = FindChildGameObject(root, "CloudSyncManager");
+            return cloudSyncObject != null ? cloudSyncObject.GetComponent<CloudSyncManager>() : null;
         }
 
         private GameObject FindChildGameObject(Transform root, string childName)
@@ -689,14 +608,22 @@ namespace RehubSystem
 
         private void UpdateHeaderStatusIndicators()
         {
-            var isInstanceOwner = Networking.LocalPlayer != null && Networking.LocalPlayer.isInstanceOwner;
-            SetHeaderStatus(_instanceOwnerStatus, _instanceOwnerStatusTheme, isInstanceOwner ? ColorPalette.Success : ColorPalette.Error);
+            UpdateHeaderStatusIndicators(false);
+        }
 
-            var verifiedPalette = _verifiedUsersLoaded && _localPlayerVerified ? ColorPalette.Success : ColorPalette.Error;
-            SetHeaderStatus(_verifiedUserStatus, _verifiedUserStatusTheme, verifiedPalette);
+        private void UpdateHeaderStatusIndicators(bool verified)
+        {
+            var instanceOwnerStatus = FindChildGameObject(_panel, InstanceOwnerStatusName);
+            var verifiedUserStatus = FindChildGameObject(_panel, VerifiedUserStatusName);
+            var worldLicensedStatus = FindChildGameObject(_panel, WorldLicensedStatusName);
+
+            var isInstanceOwner = Networking.LocalPlayer != null && Networking.LocalPlayer.isInstanceOwner;
+            SetHeaderStatus(instanceOwnerStatus, FindStatusTheme(instanceOwnerStatus), isInstanceOwner ? ColorPalette.Success : ColorPalette.Error);
+
+            SetHeaderStatus(verifiedUserStatus, FindStatusTheme(verifiedUserStatus), verified ? ColorPalette.Success : ColorPalette.Error);
 
             var isInstanceMaster = Networking.LocalPlayer != null && Networking.LocalPlayer.isMaster;
-            SetHeaderStatus(_worldLicensedStatus, _worldLicensedStatusTheme, isInstanceMaster ? ColorPalette.Success : ColorPalette.Error);
+            SetHeaderStatus(worldLicensedStatus, FindStatusTheme(worldLicensedStatus), isInstanceMaster ? ColorPalette.Success : ColorPalette.Error);
         }
 
         private void SetHeaderStatus(GameObject statusObject, ApplyTheme theme, ColorPalette palette)
@@ -724,11 +651,11 @@ namespace RehubSystem
             if (text != null) text.color = color;
         }
 
-        private bool IsNameInRemoteList(string playerName)
+        private bool IsNameInRemoteList(string remoteList, string playerName)
         {
-            if (string.IsNullOrEmpty(playerName) || string.IsNullOrEmpty(_verifiedUsersRawList)) return false;
+            if (string.IsNullOrEmpty(playerName) || string.IsNullOrEmpty(remoteList)) return false;
 
-            var source = NormalizeRemoteList(_verifiedUsersRawList);
+            var source = NormalizeRemoteList(remoteList);
             var target = NormalizeRemoteList(playerName).Trim();
             return source.Contains($"\n{target}\n");
         }
@@ -994,18 +921,16 @@ namespace RehubSystem
 
         public void ShowStatusModal()
         {
-            InitializeCloudSyncManager();
-
-            var synchronized = _cloudSyncManager != null && _cloudSyncManager.Initialized;
+            var cloudSyncManager = GetCloudSyncManager();
+            var synchronized = cloudSyncManager != null && cloudSyncManager.Initialized;
             var isInstanceMaster = Networking.LocalPlayer != null && Networking.LocalPlayer.isMaster;
             var isInstanceOwner = Networking.LocalPlayer != null && Networking.LocalPlayer.isInstanceOwner;
-            var verifiedStatus = _verifiedUsersLoaded && _localPlayerVerified;
 
             var content =
                 $"{GetSystemTranslation("statusSynchronization", "Synchronization")}: {FormatStatusValue(synchronized)}\n" +
                 $"{GetSystemTranslation("statusInstanceMaster", "Instance master")}: {FormatStatusValue(isInstanceMaster)}\n" +
                 $"{GetSystemTranslation("statusInstanceOwner", "Instance owner")}: {FormatStatusValue(isInstanceOwner)}\n" +
-                $"{GetSystemTranslation("statusVerifiedUser", "Verified user")}: {FormatStatusValue(verifiedStatus)}";
+                $"{GetSystemTranslation("statusVerifiedUser", "Verified user")}: {FormatStatusValue(LocalPlayerVerified)}";
 
             ShowModalWindow(
                 GetSystemTranslation("statusModalTitle", "Rehub System Status"),
