@@ -2,6 +2,7 @@ using UdonSharp;
 using UnityEngine;
 using UnityEngine.UI;
 using VRC.SDK3.Components;
+using VRC.SDK3.Persistence;
 using VRC.SDKBase;
 using RehubSystem.EditorShared;
 
@@ -29,6 +30,9 @@ namespace RehubSystem
         [SerializeField] private Text[] _toggleLabels = new Text[0];
         [SerializeField] private bool[] _enabledByDefault = new bool[0];
         [SerializeField] private bool[] _localOnly = new bool[0];
+        [SerializeField] private bool[] _globalToggle = new bool[0];
+        [SerializeField] private bool[] _rememberToggleState = new bool[0];
+        [SerializeField] private string[] _persistenceKeys = new string[0];
         [SerializeField] private bool[] _instanceOwnerOnly = new bool[0];
         [SerializeField] private bool[] _instanceMasterOnly = new bool[0];
         [SerializeField] private bool[] _verifiedUserOnly = new bool[0];
@@ -58,6 +62,7 @@ namespace RehubSystem
         private Quaternion[] _initialVariantRotations = new Quaternion[0];
         private Vector3[] _initialVariantScales = new Vector3[0];
         private bool _initialized;
+        private bool _playerDataReady;
 
         private void Start()
         {
@@ -71,6 +76,14 @@ namespace RehubSystem
         {
             ApplyRuntimeLabels();
             ApplyPermissions();
+        }
+
+        public override void OnPlayerRestored(VRCPlayerApi player)
+        {
+            if (player == null || !player.isLocal) return;
+
+            _playerDataReady = true;
+            if (_initialized) RestorePersistentToggleStates(player);
         }
 
         public void RefreshPermissions()
@@ -97,7 +110,9 @@ namespace RehubSystem
                 SetObjectActive(i, state);
                 layoutChanged = true;
 
-                if (!IsLocalOnly(i))
+                SavePersistentToggleState(i, state);
+
+                if (IsGlobalToggle(i))
                 {
                     PushGlobalState();
                 }
@@ -137,6 +152,7 @@ namespace RehubSystem
 
                 var defaultState = IsEnabledByDefault(i);
                 _lastToggleStates[i] = defaultState;
+                _lastVariantValues[i] = "0";
 
                 if (_toggles[i] != null)
                 {
@@ -165,7 +181,55 @@ namespace RehubSystem
             if (!string.IsNullOrEmpty(_syncedGlobalVariants)) ApplyGlobalVariantString(_syncedGlobalVariants);
 
             _initialized = true;
+            if (_playerDataReady && Networking.LocalPlayer != null)
+            {
+                RestorePersistentToggleStates(Networking.LocalPlayer);
+            }
             RefreshRuntimeLayout();
+        }
+
+        private void RestorePersistentToggleStates(VRCPlayerApi player)
+        {
+            var count = GetObjectCount();
+            for (int i = 0; i < count; i++)
+            {
+                if (!ShouldPersistToggle(i)) continue;
+
+                var key = GetPersistenceKey(i);
+                if (string.IsNullOrEmpty(key) || !PlayerData.HasKey(player, key)) continue;
+
+                var state = PlayerData.GetBool(player, key);
+                _lastToggleStates[i] = state;
+                if (_toggles[i] != null) _toggles[i].isOn = state;
+                SetObjectActive(i, state);
+                SetVariantControlVisible(i, state);
+            }
+
+            RefreshRuntimeLayout();
+        }
+
+        private void SavePersistentToggleState(int index, bool state)
+        {
+            if (!_playerDataReady || !ShouldPersistToggle(index)) return;
+
+            var key = GetPersistenceKey(index);
+            if (!string.IsNullOrEmpty(key)) PlayerData.SetBool(key, state);
+        }
+
+        private bool ShouldPersistToggle(int index)
+        {
+            return !IsGlobalToggle(index)
+                && _rememberToggleState != null
+                && index >= 0
+                && index < _rememberToggleState.Length
+                && _rememberToggleState[index];
+        }
+
+        private string GetPersistenceKey(int index)
+        {
+            if (_persistenceKeys == null || index < 0 || index >= _persistenceKeys.Length) return "";
+            if (string.IsNullOrEmpty(_persistenceKeys[index])) return "";
+            return "rehub.objects.toggle." + _persistenceKeys[index];
         }
 
         public override void OnDeserialization()
@@ -206,8 +270,16 @@ namespace RehubSystem
             }
 
             var targetTransform = target.transform;
-            targetTransform.position = _initialPositions[index];
-            targetTransform.rotation = _initialRotations[index];
+            var objectSync = target.GetComponent<VRCObjectSync>();
+            if (!IsLocalOnly(index) && objectSync != null)
+            {
+                objectSync.Respawn();
+            }
+            else
+            {
+                targetTransform.position = _initialPositions[index];
+                targetTransform.rotation = _initialRotations[index];
+            }
             targetTransform.localScale = _initialScales[index];
             RespawnVariantObjects(index);
         }
@@ -260,8 +332,16 @@ namespace RehubSystem
                     rigidbody.velocity = Vector3.zero;
                     rigidbody.angularVelocity = Vector3.zero;
                 }
-                _variantTransforms[i].position = _initialVariantPositions[i];
-                _variantTransforms[i].rotation = _initialVariantRotations[i];
+                var objectSync = child.GetComponent<VRCObjectSync>();
+                if (!IsLocalOnly(parentIndex) && objectSync != null)
+                {
+                    objectSync.Respawn();
+                }
+                else
+                {
+                    _variantTransforms[i].position = _initialVariantPositions[i];
+                    _variantTransforms[i].rotation = _initialVariantRotations[i];
+                }
                 _variantTransforms[i].localScale = _initialVariantScales[i];
             }
         }
@@ -353,6 +433,8 @@ namespace RehubSystem
 
         private void RefreshRuntimeLayout()
         {
+            if (_toggleListRoot == null) return;
+
             var cursorY = 40f;
             var count = GetObjectCount();
             for (int i = 0; i < count; i++)
@@ -382,13 +464,18 @@ namespace RehubSystem
                 }
             }
 
-            var listRect = _toggleListRoot as RectTransform;
+            var listRect = _toggleListRoot.GetComponent<RectTransform>();
             if (listRect != null) listRect.sizeDelta = new Vector2(listRect.sizeDelta.x, Mathf.Max(620f, cursorY + 40f));
 
-            if (_toggleListRoot != null && _toggleListRoot.parent != null && _toggleListRoot.parent.parent != null)
+            var viewport = _toggleListRoot.parent;
+            if (viewport != null)
             {
-                var scrollbar = _toggleListRoot.parent.parent.Find("Scrollbar Vertical (Template)");
-                if (scrollbar != null) scrollbar.gameObject.SetActive(cursorY > 620f);
+                var scrollView = viewport.parent;
+                if (scrollView != null)
+                {
+                    var scrollbar = scrollView.Find("Scrollbar Vertical (Template)");
+                    if (scrollbar != null) scrollbar.gameObject.SetActive(cursorY > 620f);
+                }
             }
         }
 
@@ -415,7 +502,7 @@ namespace RehubSystem
                     result += "-";
                     continue;
                 }
-                var value = _variantControls[i].Value;
+                var value = _lastVariantValues != null && i < _lastVariantValues.Length ? _lastVariantValues[i] : "0";
                 result += string.IsNullOrEmpty(value) ? "0" : value.Substring(0, 1);
             }
             return result;
@@ -445,7 +532,7 @@ namespace RehubSystem
             var result = "";
             for (int i = 0; i < count; i++)
             {
-                if (IsLocalOnly(i))
+                if (!IsGlobalToggle(i))
                 {
                     result += "-";
                     continue;
@@ -465,7 +552,7 @@ namespace RehubSystem
             var count = GetObjectCount();
             for (int i = 0; i < count && i < states.Length; i++)
             {
-                if (IsLocalOnly(i)) continue;
+                if (!IsGlobalToggle(i)) continue;
 
                 var stateChar = states.Substring(i, 1);
                 if (stateChar != "0" && stateChar != "1") continue;
@@ -507,6 +594,11 @@ namespace RehubSystem
         private bool IsLocalOnly(int index)
         {
             return _localOnly != null && index >= 0 && index < _localOnly.Length && _localOnly[index];
+        }
+
+        private bool IsGlobalToggle(int index)
+        {
+            return _globalToggle != null && index >= 0 && index < _globalToggle.Length && _globalToggle[index];
         }
     }
 
@@ -599,6 +691,9 @@ namespace RehubSystem
             var labels = serializedObject.FindProperty("_toggleLabels");
             var defaults = serializedObject.FindProperty("_enabledByDefault");
             var localOnly = serializedObject.FindProperty("_localOnly");
+            var globalToggle = serializedObject.FindProperty("_globalToggle");
+            var rememberToggleState = serializedObject.FindProperty("_rememberToggleState");
+            var persistenceKeys = serializedObject.FindProperty("_persistenceKeys");
             var ownerOnly = serializedObject.FindProperty("_instanceOwnerOnly");
             var masterOnly = serializedObject.FindProperty("_instanceMasterOnly");
             var verifiedOnly = serializedObject.FindProperty("_verifiedUserOnly");
@@ -611,7 +706,7 @@ namespace RehubSystem
             var groupHeaders = serializedObject.FindProperty("_groupHeaders");
 
             ObjectsModuleEditorUtility.NormalizeArrays(
-                objects, toggles, labels, defaults, localOnly,
+                objects, toggles, labels, defaults, localOnly, globalToggle, rememberToggleState, persistenceKeys,
                 ownerOnly, masterOnly, verifiedOnly,
                 toggleOwnerOnly, toggleMasterOnly, toggleVerifiedOnly,
                 groupIndexes, useChildVariants, variantControls, groupHeaders);
@@ -623,6 +718,11 @@ namespace RehubSystem
                 {
                     EditorGUILayout.PropertyField(objects.GetArrayElementAtIndex(i), new GUIContent(_i18n.GetTranslation("object")));
                     EditorGUILayout.PropertyField(defaults.GetArrayElementAtIndex(i), new GUIContent(_i18n.GetTranslation("enabledByDefault")));
+                    EditorGUILayout.PropertyField(globalToggle.GetArrayElementAtIndex(i), new GUIContent(_i18n.GetTranslation("globalToggle")));
+                    using (new EditorGUI.DisabledScope(globalToggle.GetArrayElementAtIndex(i).boolValue))
+                    {
+                        EditorGUILayout.PropertyField(rememberToggleState.GetArrayElementAtIndex(i), new GUIContent(_i18n.GetTranslation("rememberToggleState")));
+                    }
                     EditorGUI.BeginChangeCheck();
                     EditorGUILayout.PropertyField(localOnly.GetArrayElementAtIndex(i), new GUIContent(_i18n.GetTranslation("localOnly")));
                     if (EditorGUI.EndChangeCheck())
@@ -782,6 +882,46 @@ namespace RehubSystem
             AssignLocalization(module, metadata);
             AssignUiManager(module);
             EnsureModuleRoots(module, metadata);
+            EnsurePersistenceSettings(module);
+        }
+
+        private static void EnsurePersistenceSettings(ObjectsModule module)
+        {
+            var serializedModule = new SerializedObject(module);
+            var objects = serializedModule.FindProperty("_objects");
+            var rememberStates = serializedModule.FindProperty("_rememberToggleState");
+            var persistenceKeys = serializedModule.FindProperty("_persistenceKeys");
+            var objectCount = objects.arraySize;
+            var previousRememberCount = rememberStates.arraySize;
+
+            rememberStates.arraySize = objectCount;
+            persistenceKeys.arraySize = objectCount;
+            for (int i = 0; i < objectCount; i++)
+            {
+                if (i >= previousRememberCount) rememberStates.GetArrayElementAtIndex(i).boolValue = true;
+
+                var keyProperty = persistenceKeys.GetArrayElementAtIndex(i);
+                var duplicate = false;
+                if (!string.IsNullOrEmpty(keyProperty.stringValue))
+                {
+                    for (int j = 0; j < i; j++)
+                    {
+                        if (persistenceKeys.GetArrayElementAtIndex(j).stringValue == keyProperty.stringValue)
+                        {
+                            duplicate = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (string.IsNullOrEmpty(keyProperty.stringValue) || duplicate)
+                {
+                    keyProperty.stringValue = Guid.NewGuid().ToString("N");
+                }
+            }
+
+            serializedModule.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(module);
         }
 
         public static void AddObject(ObjectsModule module, int groupIndex = -1)
@@ -878,21 +1018,30 @@ namespace RehubSystem
 
         public static void ConfigurePickupNetworking(GameObject target, bool localOnly)
         {
-            if (target == null || target.GetComponent<VRCPickup>() == null) return;
+            if (target == null) return;
+            ConfigurePickupNetworkingRecursive(target.transform, localOnly);
+        }
 
-            var objectSync = target.GetComponent<VRCObjectSync>();
-            if (localOnly && objectSync != null)
+        private static void ConfigurePickupNetworkingRecursive(Transform target, bool localOnly)
+        {
+            var pickup = target.GetComponent<VRCPickup>();
+            if (pickup != null)
             {
-                Undo.DestroyObjectImmediate(objectSync);
+                if (target.GetComponent<Rigidbody>() == null) Undo.AddComponent<Rigidbody>(target.gameObject);
+                var objectSync = target.GetComponent<VRCObjectSync>();
+                if (localOnly && objectSync != null) Undo.DestroyObjectImmediate(objectSync);
+                else if (!localOnly && objectSync == null) Undo.AddComponent<VRCObjectSync>(target.gameObject);
             }
-            else if (!localOnly && objectSync == null)
+
+            for (int i = 0; i < target.childCount; i++)
             {
-                Undo.AddComponent<VRCObjectSync>(target);
+                ConfigurePickupNetworkingRecursive(target.GetChild(i), localOnly);
             }
         }
 
         public static void RebuildToggles(ObjectsModule module)
         {
+            EnsurePersistenceSettings(module);
             var serializedModule = new SerializedObject(module);
             var listRootProp = serializedModule.FindProperty("_toggleListRoot");
             var templateProp = serializedModule.FindProperty("_toggleSwitchTextTemplate");
@@ -924,6 +1073,9 @@ namespace RehubSystem
             var labels = serializedModule.FindProperty("_toggleLabels");
             var defaults = serializedModule.FindProperty("_enabledByDefault");
             var localOnly = serializedModule.FindProperty("_localOnly");
+            var globalToggle = serializedModule.FindProperty("_globalToggle");
+            var rememberToggleState = serializedModule.FindProperty("_rememberToggleState");
+            var persistenceKeys = serializedModule.FindProperty("_persistenceKeys");
             var ownerOnly = serializedModule.FindProperty("_instanceOwnerOnly");
             var masterOnly = serializedModule.FindProperty("_instanceMasterOnly");
             var verifiedOnly = serializedModule.FindProperty("_verifiedUserOnly");
@@ -936,7 +1088,7 @@ namespace RehubSystem
             var variantControls = serializedModule.FindProperty("_variantControls");
             var groupHeaders = serializedModule.FindProperty("_groupHeaders");
             NormalizeArrays(
-                objects, toggles, labels, defaults, localOnly,
+                objects, toggles, labels, defaults, localOnly, globalToggle, rememberToggleState, persistenceKeys,
                 ownerOnly, masterOnly, verifiedOnly,
                 toggleOwnerOnly, toggleMasterOnly, toggleVerifiedOnly,
                 groupIndexes, useChildVariants, variantControls, groupHeaders);
@@ -946,6 +1098,7 @@ namespace RehubSystem
             for (int i = 0; i < objects.arraySize; i++)
             {
                 var objectRef = objects.GetArrayElementAtIndex(i).objectReferenceValue as GameObject;
+                ConfigurePickupNetworking(objectRef, localOnly.GetArrayElementAtIndex(i).boolValue);
                 var groupIndex = groupIndexes.GetArrayElementAtIndex(i).intValue;
                 if (groupIndex >= 0 && groupIndex < groups.arraySize && groupIndex != lastGroupIndex)
                 {
@@ -1105,6 +1258,9 @@ namespace RehubSystem
                 serializedObject.FindProperty("_toggleLabels"),
                 serializedObject.FindProperty("_enabledByDefault"),
                 serializedObject.FindProperty("_localOnly"),
+                serializedObject.FindProperty("_globalToggle"),
+                serializedObject.FindProperty("_rememberToggleState"),
+                serializedObject.FindProperty("_persistenceKeys"),
                 serializedObject.FindProperty("_instanceOwnerOnly"),
                 serializedObject.FindProperty("_instanceMasterOnly"),
                 serializedObject.FindProperty("_verifiedUserOnly"),
@@ -1477,6 +1633,9 @@ namespace RehubSystem
             var labels = serializedModule.FindProperty("_toggleLabels");
             var defaults = serializedModule.FindProperty("_enabledByDefault");
             var local = serializedModule.FindProperty("_localOnly");
+            var globalToggle = serializedModule.FindProperty("_globalToggle");
+            var rememberToggleState = serializedModule.FindProperty("_rememberToggleState");
+            var persistenceKeys = serializedModule.FindProperty("_persistenceKeys");
             var ownerOnly = serializedModule.FindProperty("_instanceOwnerOnly");
             var masterOnly = serializedModule.FindProperty("_instanceMasterOnly");
             var verifiedOnly = serializedModule.FindProperty("_verifiedUserOnly");
@@ -1494,6 +1653,9 @@ namespace RehubSystem
             labels.InsertArrayElementAtIndex(index);
             defaults.InsertArrayElementAtIndex(index);
             local.InsertArrayElementAtIndex(index);
+            globalToggle.InsertArrayElementAtIndex(index);
+            rememberToggleState.InsertArrayElementAtIndex(index);
+            persistenceKeys.InsertArrayElementAtIndex(index);
             ownerOnly.InsertArrayElementAtIndex(index);
             masterOnly.InsertArrayElementAtIndex(index);
             verifiedOnly.InsertArrayElementAtIndex(index);
@@ -1510,6 +1672,9 @@ namespace RehubSystem
             labels.GetArrayElementAtIndex(index).objectReferenceValue = null;
             defaults.GetArrayElementAtIndex(index).boolValue = enabledByDefault;
             local.GetArrayElementAtIndex(index).boolValue = localOnly;
+            globalToggle.GetArrayElementAtIndex(index).boolValue = false;
+            rememberToggleState.GetArrayElementAtIndex(index).boolValue = true;
+            persistenceKeys.GetArrayElementAtIndex(index).stringValue = Guid.NewGuid().ToString("N");
             ownerOnly.GetArrayElementAtIndex(index).boolValue = false;
             masterOnly.GetArrayElementAtIndex(index).boolValue = false;
             verifiedOnly.GetArrayElementAtIndex(index).boolValue = false;
